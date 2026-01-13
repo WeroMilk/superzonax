@@ -1,17 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // Configuración para Vercel (permite API routes y Server Actions)
+  // NO usar 'export' si tienes API Routes
+  // output: 'export',  ⬅️ COMENTA o ELIMINA esta línea
+  
   images: {
-    domains: ['localhost'],
-    // Vercel soporta optimización de imágenes, así que podemos habilitarla
-    unoptimized: false,
+    unoptimized: true,
   },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
-  },
+  // Añade esto para ignorar API Routes en build estático
+  skipTrailingSlashRedirect: true,
+  skipMiddlewareUrlNormalize: true,
 }
 
 module.exports = nextConfig
