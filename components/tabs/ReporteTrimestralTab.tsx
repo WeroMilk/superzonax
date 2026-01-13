@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FileText, Mail, Calendar, Download } from 'lucide-react'
+import { Upload, FileText, Mail, Calendar, Download, Trash2 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { formatDate, getCurrentYear } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import EmailSelector from '@/components/EmailSelector'
+import YearInput from '@/components/YearInput'
 
 interface User {
   id: number
@@ -31,6 +32,7 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [records, setRecords] = useState<TrimestralRecord[]>([])
+  const [lastUploaded, setLastUploaded] = useState<TrimestralRecord | null>(null)
   const [emailRecipients, setEmailRecipients] = useState('')
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [selectedQuarter, setSelectedQuarter] = useState(1)
@@ -43,9 +45,46 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
     if (isAdmin) {
       fetchRecords()
     } else {
-      fetchMyRecords()
+      loadLastUploaded()
     }
   }, [isAdmin])
+
+  useEffect(() => {
+    if (!isAdmin && lastUploaded) {
+      const storageKey = `lastUploaded_trimestral_${user.role}`
+      localStorage.setItem(storageKey, JSON.stringify(lastUploaded))
+    }
+  }, [lastUploaded, isAdmin, user.role])
+
+  const loadLastUploaded = async () => {
+    const storageKey = `lastUploaded_trimestral_${user.role}`
+    const stored = localStorage.getItem(storageKey)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setLastUploaded(parsed)
+      } catch {
+        // Error al parsear, continuar sin datos guardados
+      }
+    }
+    await fetchLastRecord()
+  }
+
+  const fetchLastRecord = async () => {
+    try {
+      const response = await fetch(`/api/reporte-trimestral?school=${schoolId}`)
+      const data = await response.json()
+      if (data.success && data.records.length > 0) {
+        const sortedRecords = data.records.sort((a: TrimestralRecord, b: TrimestralRecord) => {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+        const latest = sortedRecords[0]
+        setLastUploaded(latest)
+      }
+    } catch {
+      // Error al obtener registros
+    }
+  }
 
   const fetchRecords = async () => {
     try {
@@ -54,20 +93,35 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
       if (data.success) {
         setRecords(data.records)
       }
-    } catch (error) {
-      console.error('Error fetching records:', error)
+    } catch {
+      // Error al obtener registros
     }
   }
 
-  const fetchMyRecords = async () => {
+
+  const handleDeleteRecord = async (recordId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+      return
+    }
+
     try {
-      const response = await fetch(`/api/reporte-trimestral?school=${schoolId}`)
+      const response = await fetch(`/api/reporte-trimestral/${recordId}`, {
+        method: 'DELETE',
+      })
+
       const data = await response.json()
+
       if (data.success) {
-        setRecords(data.records)
+        setMessage({ type: 'success', text: 'Registro eliminado correctamente' })
+        const storageKey = `lastUploaded_trimestral_${user.role}`
+        localStorage.removeItem(storageKey)
+        setLastUploaded(null)
+        await fetchLastRecord()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al eliminar registro' })
       }
     } catch (error) {
-      console.error('Error fetching records:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
     }
   }
 
@@ -113,7 +167,7 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
       if (data.success) {
         setMessage({ type: 'success', text: 'Reporte subido correctamente' })
         setFile(null)
-        fetchMyRecords()
+        await fetchLastRecord()
       } else {
         setMessage({ type: 'error', text: data.error || 'Error al subir reporte' })
       }
@@ -192,11 +246,9 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Año
                 </label>
-                <input
-                  type="number"
+                <YearInput
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="input-field"
+                  onChange={setSelectedYear}
                   min={2020}
                   max={2100}
                 />
@@ -337,11 +389,9 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Año
               </label>
-              <input
-                type="number"
+              <YearInput
                 value={year}
-                onChange={(e) => setYear(parseInt(e.target.value))}
-                className="input-field"
+                onChange={setYear}
                 min={2020}
                 max={2100}
                 required
@@ -394,37 +444,60 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
         </form>
       </motion.div>
 
-      {/* Historial */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card flex-1 overflow-hidden flex flex-col"
-      >
-        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Mis Registros</h3>
-        <div className="space-y-1 overflow-y-auto flex-1">
-          {records.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No hay registros aún</p>
-          ) : (
-            records.map((record) => (
-              <div key={record.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg text-sm">
-                <div>
-                  <p className="font-medium">
-                    Trimestre {record.quarter} - {record.year}
+      {/* Último Archivo Subido */}
+      {!isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card flex flex-col"
+          style={{ height: '450px', display: 'flex', flexDirection: 'column' }}
+        >
+          <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Último Archivo Subido</h3>
+          <div 
+            className="flex-1 pr-2 flex items-center justify-center"
+            style={{ 
+              overflowY: 'auto', 
+              overflowX: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              maxHeight: '100%',
+              minHeight: 0
+            }}
+          >
+            {!lastUploaded ? (
+              <p className="text-gray-500 text-center py-4">No hay archivos subidos aún</p>
+            ) : (
+              <div className="w-full flex flex-col items-center justify-center space-y-4 p-4">
+                <div className="flex flex-col items-center space-y-2">
+                  <p className="font-medium text-lg">
+                    Trimestre {lastUploaded.quarter} - {lastUploaded.year}
                   </p>
                 </div>
-                <a
-                  href={`/api/files/${record.file}`}
-                  download
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  <Download className="w-4 h-4" />
-                </a>
+                <div className="flex space-x-3">
+                  <a
+                    href={`/api/files/${encodeURIComponent(lastUploaded.file)}`}
+                    download={lastUploaded.file}
+                    className="btn-primary flex items-center space-x-2 px-4 py-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Descargar archivo</span>
+                  </a>
+                  <button
+                    onClick={() => handleDeleteRecord(lastUploaded.id)}
+                    className="btn-secondary flex items-center space-x-2 px-4 py-2 text-red-600 border-red-500"
+                    title="Eliminar registro"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
               </div>
-            ))
-          )}
-        </div>
-      </motion.div>
+            )}
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }

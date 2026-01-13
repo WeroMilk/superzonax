@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { login } from '@/lib/auth'
 import type { LoginRequest, LoginResponse } from '@/lib/types'
 
-// Manejar método OPTIONS para CORS (necesario en Vercel)
-export async function OPTIONS(request: NextRequest) {
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
@@ -15,30 +17,21 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
+export async function GET() {
+  return NextResponse.json({
+    success: true,
+    message: 'Login API está funcionando',
+    methods: ['POST', 'OPTIONS', 'GET'],
+    timestamp: new Date().toISOString(),
+  })
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<LoginResponse>> {
   try {
-    // Log para debugging (solo en desarrollo)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Login API called:', {
-        method: request.method,
-        url: request.url,
-        headers: Object.fromEntries(request.headers.entries()),
-      })
-    }
-    
-    // Verificar que el método sea POST
-    if (request.method !== 'POST') {
-      console.error('Method not allowed:', request.method)
-      return NextResponse.json(
-        { success: false, error: `Método no permitido: ${request.method}. Se esperaba POST.` },
-        { status: 405 }
-      )
-    }
-
     let body: LoginRequest
     try {
       body = await request.json()
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { success: false, error: 'Cuerpo de la petición inválido' },
         { status: 400 }
@@ -76,23 +69,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
       user: result.user,
     })
 
-    // Establecer cookie
     response.cookies.set('auth-token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 días
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     })
 
-    // Agregar headers CORS
     response.headers.set('Access-Control-Allow-Origin', '*')
     response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
 
     return response
   } catch (error) {
-    console.error('Error en login API:', error)
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Error interno del servidor'

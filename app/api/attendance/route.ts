@@ -3,8 +3,9 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
+import { getUploadDir } from '@/lib/vercel-utils'
 
-const UPLOAD_DIR = join(process.cwd(), 'data', 'uploads', 'attendance')
+const UPLOAD_DIR = getUploadDir('attendance')
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,8 +30,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, records })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 
@@ -51,16 +53,21 @@ export async function POST(request: NextRequest) {
 
     await mkdir(UPLOAD_DIR, { recursive: true })
 
-    const fileName = `${user.role}_${date}_attendance_${Date.now()}.${attendanceFile.name.split('.').pop()}`
+    const fileExtension = attendanceFile.name.split('.').pop() || 'xlsx'
+    const fileName = `${user.role}_${date}_attendance_${Date.now()}.${fileExtension}`
     const filePath = join(UPLOAD_DIR, fileName)
 
-    await writeFile(filePath, Buffer.from(await attendanceFile.arrayBuffer()))
+    const arrayBuffer = await attendanceFile.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    
+    await writeFile(filePath, buffer)
 
     db.createOrUpdateAttendance(user.role, date, fileName, null)
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 

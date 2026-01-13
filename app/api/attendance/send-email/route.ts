@@ -3,8 +3,9 @@ import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
 import db from '@/lib/db-json'
 import { join } from 'path'
+import { getUploadDir } from '@/lib/vercel-utils'
 
-const UPLOAD_DIR = join(process.cwd(), 'data', 'uploads', 'attendance')
+const UPLOAD_DIR = getUploadDir('attendance')
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No hay archivos para esta fecha' }, { status: 400 })
     }
 
-    const files: Array<{ path: string; name: string }> = []
+    const files: Array<{ path: string; name: string; schoolId: string }> = []
 
     for (const record of records) {
       const schoolName = record.school_id === 'sec6' ? 'Secundaria 6' : record.school_id === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
         files.push({
           path: join(UPLOAD_DIR, record.students_file),
           name: `${schoolName}_Asistencia`,
+          schoolId: record.school_id,
         })
       }
     }
@@ -51,8 +53,9 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 })
     }
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 

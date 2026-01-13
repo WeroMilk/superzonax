@@ -84,3 +84,4 @@ lista_archivos_completa.csv
 # Otros
 .npm-cache/
 .eslintcache
+package-lock.json

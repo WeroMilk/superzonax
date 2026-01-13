@@ -1,12 +1,12 @@
-import fs from 'fs';
-import path from 'path';
-import bcrypt from 'bcryptjs';
+import fs from 'fs'
+import bcrypt from 'bcryptjs'
+import { getDataDir, getDbPath } from './vercel-utils'
 
-const dataDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(dataDir, 'db.json');
+const dataDir = getDataDir()
+const dbPath = getDbPath()
 
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+  fs.mkdirSync(dataDir, { recursive: true })
 }
 
 interface Database {
@@ -70,6 +70,7 @@ interface Database {
     file_path: string;
     file_type: string;
     uploaded_by: string;
+    allowed_schools: string[];
     created_at: string;
   }>;
   email_config: Array<{
@@ -80,9 +81,10 @@ interface Database {
   }>;
 }
 
-function readDB(): Database {
+function readDB(skipInit = false): Database {
+  let db: Database
   if (!fs.existsSync(dbPath)) {
-    return {
+    db = {
       users: [],
       attendance: [],
       consejo_tecnico: [],
@@ -91,19 +93,48 @@ function readDB(): Database {
       evidencias: [],
       documentos: [],
       email_config: [],
-    };
+    }
+  } else {
+    try {
+      const data = fs.readFileSync(dbPath, 'utf-8')
+      db = JSON.parse(data)
+    } catch {
+      db = {
+        users: [],
+        attendance: [],
+        consejo_tecnico: [],
+        reporte_trimestral: [],
+        events: [],
+        evidencias: [],
+        documentos: [],
+        email_config: [],
+      }
+    }
   }
-  const data = fs.readFileSync(dbPath, 'utf-8');
-  return JSON.parse(data);
+  
+  if (!skipInit && db.users.length === 0) {
+    initializeDBInternal(db)
+    if (fs.existsSync(dbPath)) {
+      try {
+        const data = fs.readFileSync(dbPath, 'utf-8')
+        db = JSON.parse(data)
+      } catch {
+        // Ignorar error de lectura
+      }
+    }
+  }
+  
+  return db
 }
 
 function writeDB(db: Database): void {
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true })
+  }
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8')
 }
 
-function initializeDB(): void {
-  const db = readDB();
-  
+function initializeDBInternal(db: Database): void {
   if (db.users.length === 0) {
     db.users = [
       {
@@ -138,47 +169,50 @@ function initializeDB(): void {
         school_name: 'Secundaria Técnica No. 72',
         created_at: new Date().toISOString(),
       },
-    ];
-    writeDB(db);
+    ]
+    writeDB(db)
   }
 }
 
-initializeDB();
+const initialDb = readDB(true)
+if (initialDb.users.length === 0) {
+  initializeDBInternal(initialDb)
+}
 
 class DB {
   private getNextId(collection: keyof Database): number {
-    const db = readDB();
-    const items = db[collection] as any[];
-    if (items.length === 0) return 1;
-    return Math.max(...items.map((item: any) => item.id)) + 1;
+    const db = readDB()
+    const items = db[collection] as Array<{ id: number }>
+    if (items.length === 0) return 1
+    return Math.max(...items.map((item) => item.id)) + 1
   }
 
   findUser(username: string) {
-    const db = readDB();
-    return db.users.find(u => u.username === username);
+    const db = readDB()
+    return db.users.find(u => u.username === username)
   }
 
   getUserById(id: number) {
-    const db = readDB();
-    return db.users.find(u => u.id === id);
+    const db = readDB()
+    return db.users.find(u => u.id === id)
   }
 
   findAttendance(schoolId: string, date: string) {
-    const db = readDB();
-    return db.attendance.find(a => a.school_id === schoolId && a.date === date);
+    const db = readDB()
+    return db.attendance.find(a => a.school_id === schoolId && a.date === date)
   }
 
   getAllAttendance(schoolId?: string) {
-    const db = readDB();
+    const db = readDB()
     if (schoolId) {
-      return db.attendance.filter(a => a.school_id === schoolId);
+      return db.attendance.filter(a => a.school_id === schoolId)
     }
-    return db.attendance;
+    return db.attendance
   }
 
   createOrUpdateAttendance(schoolId: string, date: string, studentsFile: string | null, staffFile: string | null) {
-    const db = readDB();
-    const existing = db.attendance.findIndex(a => a.school_id === schoolId && a.date === date);
+    const db = readDB()
+    const existing = db.attendance.findIndex(a => a.school_id === schoolId && a.date === date)
     
     const attendanceData = {
       school_id: schoolId,
@@ -186,35 +220,46 @@ class DB {
       students_file: studentsFile,
       staff_file: staffFile,
       created_at: new Date().toISOString(),
-    };
+    }
 
     if (existing >= 0) {
-      db.attendance[existing] = { ...db.attendance[existing], ...attendanceData };
+      db.attendance[existing] = { ...db.attendance[existing], ...attendanceData }
     } else {
       db.attendance.push({
         id: this.getNextId('attendance'),
         ...attendanceData,
-      });
+      })
     }
-    writeDB(db);
+    writeDB(db)
+  }
+
+  deleteAttendance(id: number) {
+    const db = readDB()
+    const index = db.attendance.findIndex(a => a.id === id)
+    if (index >= 0) {
+      db.attendance.splice(index, 1)
+      writeDB(db)
+      return true
+    }
+    return false
   }
 
   findConsejoTecnico(schoolId: string, month: string, year: number) {
-    const db = readDB();
-    return db.consejo_tecnico.find(c => c.school_id === schoolId && c.month === month && c.year === year);
+    const db = readDB()
+    return db.consejo_tecnico.find(c => c.school_id === schoolId && c.month === month && c.year === year)
   }
 
   getAllConsejoTecnico(schoolId?: string) {
-    const db = readDB();
+    const db = readDB()
     if (schoolId) {
-      return db.consejo_tecnico.filter(c => c.school_id === schoolId);
+      return db.consejo_tecnico.filter(c => c.school_id === schoolId)
     }
-    return db.consejo_tecnico;
+    return db.consejo_tecnico
   }
 
   createOrUpdateConsejoTecnico(schoolId: string, month: string, year: number, file: string) {
-    const db = readDB();
-    const existing = db.consejo_tecnico.findIndex(c => c.school_id === schoolId && c.month === month && c.year === year);
+    const db = readDB()
+    const existing = db.consejo_tecnico.findIndex(c => c.school_id === schoolId && c.month === month && c.year === year)
     
     const consejoData = {
       school_id: schoolId,
@@ -222,35 +267,46 @@ class DB {
       year,
       file,
       created_at: new Date().toISOString(),
-    };
+    }
 
     if (existing >= 0) {
-      db.consejo_tecnico[existing] = { ...db.consejo_tecnico[existing], ...consejoData };
+      db.consejo_tecnico[existing] = { ...db.consejo_tecnico[existing], ...consejoData }
     } else {
       db.consejo_tecnico.push({
         id: this.getNextId('consejo_tecnico'),
         ...consejoData,
-      });
+      })
     }
-    writeDB(db);
+    writeDB(db)
+  }
+
+  deleteConsejoTecnico(id: number) {
+    const db = readDB()
+    const index = db.consejo_tecnico.findIndex(c => c.id === id)
+    if (index >= 0) {
+      db.consejo_tecnico.splice(index, 1)
+      writeDB(db)
+      return true
+    }
+    return false
   }
 
   findReporteTrimestral(schoolId: string, quarter: number, year: number) {
-    const db = readDB();
-    return db.reporte_trimestral.find(r => r.school_id === schoolId && r.quarter === quarter && r.year === year);
+    const db = readDB()
+    return db.reporte_trimestral.find(r => r.school_id === schoolId && r.quarter === quarter && r.year === year)
   }
 
   getAllReporteTrimestral(schoolId?: string) {
-    const db = readDB();
+    const db = readDB()
     if (schoolId) {
-      return db.reporte_trimestral.filter(r => r.school_id === schoolId);
+      return db.reporte_trimestral.filter(r => r.school_id === schoolId)
     }
-    return db.reporte_trimestral;
+    return db.reporte_trimestral
   }
 
   createOrUpdateReporteTrimestral(schoolId: string, quarter: number, year: number, file: string) {
-    const db = readDB();
-    const existing = db.reporte_trimestral.findIndex(r => r.school_id === schoolId && r.quarter === quarter && r.year === year);
+    const db = readDB()
+    const existing = db.reporte_trimestral.findIndex(r => r.school_id === schoolId && r.quarter === quarter && r.year === year)
     
     const reporteData = {
       school_id: schoolId,
@@ -258,116 +314,144 @@ class DB {
       year,
       file,
       created_at: new Date().toISOString(),
-    };
+    }
 
     if (existing >= 0) {
-      db.reporte_trimestral[existing] = { ...db.reporte_trimestral[existing], ...reporteData };
+      db.reporte_trimestral[existing] = { ...db.reporte_trimestral[existing], ...reporteData }
     } else {
       db.reporte_trimestral.push({
         id: this.getNextId('reporte_trimestral'),
         ...reporteData,
-      });
+      })
     }
-    writeDB(db);
+    writeDB(db)
+  }
+
+  deleteReporteTrimestral(id: number) {
+    const db = readDB()
+    const index = db.reporte_trimestral.findIndex(r => r.id === id)
+    if (index >= 0) {
+      db.reporte_trimestral.splice(index, 1)
+      writeDB(db)
+      return true
+    }
+    return false
   }
 
   getAllEvents() {
-    const db = readDB();
-    return db.events;
+    const db = readDB()
+    return db.events
   }
 
   createEvent(event: Omit<Database['events'][0], 'id' | 'created_at'>) {
-    const db = readDB();
+    const db = readDB()
     const newEvent = {
       id: this.getNextId('events'),
       ...event,
       created_at: new Date().toISOString(),
-    };
-    db.events.push(newEvent);
-    writeDB(db);
-    return newEvent;
+    }
+    db.events.push(newEvent)
+    writeDB(db)
+    return newEvent
   }
 
   updateEvent(id: number, event: Partial<Database['events'][0]>) {
-    const db = readDB();
-    const index = db.events.findIndex(e => e.id === id);
+    const db = readDB()
+    const index = db.events.findIndex(e => e.id === id)
     if (index >= 0) {
-      db.events[index] = { ...db.events[index], ...event };
-      writeDB(db);
-      return db.events[index];
+      db.events[index] = { ...db.events[index], ...event }
+      writeDB(db)
+      return db.events[index]
     }
-    return null;
+    return null
   }
 
   deleteEvent(id: number) {
-    const db = readDB();
-    const index = db.events.findIndex(e => e.id === id);
+    const db = readDB()
+    const index = db.events.findIndex(e => e.id === id)
     if (index >= 0) {
-      db.events.splice(index, 1);
-      writeDB(db);
-      return true;
+      db.events.splice(index, 1)
+      writeDB(db)
+      return true
     }
-    return false;
+    return false
   }
 
   getAllEvidencias(schoolId?: string) {
-    const db = readDB();
+    const db = readDB()
     if (schoolId) {
-      return db.evidencias.filter(e => e.school_id === schoolId);
+      return db.evidencias.filter(e => e.school_id === schoolId)
     }
-    return db.evidencias;
+    return db.evidencias
   }
 
   createEvidencia(evidencia: Omit<Database['evidencias'][0], 'id' | 'created_at'>) {
-    const db = readDB();
+    const db = readDB()
     const newEvidencia = {
       id: this.getNextId('evidencias'),
       ...evidencia,
       created_at: new Date().toISOString(),
-    };
-    db.evidencias.push(newEvidencia);
-    writeDB(db);
-    return newEvidencia;
+    }
+    db.evidencias.push(newEvidencia)
+    writeDB(db)
+    return newEvidencia
   }
 
   deleteEvidencia(id: number) {
-    const db = readDB();
-    const index = db.evidencias.findIndex(e => e.id === id);
+    const db = readDB()
+    const index = db.evidencias.findIndex(e => e.id === id)
     if (index >= 0) {
-      db.evidencias.splice(index, 1);
-      writeDB(db);
-      return true;
+      db.evidencias.splice(index, 1)
+      writeDB(db)
+      return true
     }
-    return false;
+    return false
   }
 
-  getAllDocumentos() {
-    const db = readDB();
-    return db.documentos;
+  getAllDocumentos(schoolId?: string) {
+    const db = readDB()
+    if (schoolId) {
+      return db.documentos.filter(doc => 
+        doc.allowed_schools.length === 0 || doc.allowed_schools.includes(schoolId)
+      )
+    }
+    return db.documentos
   }
 
   createDocumento(documento: Omit<Database['documentos'][0], 'id' | 'created_at'>) {
-    const db = readDB();
+    const db = readDB()
     const newDocumento = {
       id: this.getNextId('documentos'),
       ...documento,
+      allowed_schools: documento.allowed_schools || [],
       created_at: new Date().toISOString(),
-    };
-    db.documentos.push(newDocumento);
-    writeDB(db);
-    return newDocumento;
+    }
+    db.documentos.push(newDocumento)
+    writeDB(db)
+    return newDocumento
+  }
+
+  updateDocumento(id: number, documento: Partial<Database['documentos'][0]>) {
+    const db = readDB()
+    const index = db.documentos.findIndex(d => d.id === id)
+    if (index >= 0) {
+      db.documentos[index] = { ...db.documentos[index], ...documento }
+      writeDB(db)
+      return db.documentos[index]
+    }
+    return null
   }
 
   deleteDocumento(id: number) {
-    const db = readDB();
-    const index = db.documentos.findIndex(d => d.id === id);
+    const db = readDB()
+    const index = db.documentos.findIndex(d => d.id === id)
     if (index >= 0) {
-      db.documentos.splice(index, 1);
-      writeDB(db);
-      return true;
+      db.documentos.splice(index, 1)
+      writeDB(db)
+      return true
     }
-    return false;
+    return false
   }
 }
 
-export default new DB();
+export default new DB()

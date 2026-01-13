@@ -1,19 +1,16 @@
-// Tipos para respuestas de API
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
   message?: string
 }
 
-// Tipos para errores HTTP
 export interface HttpError {
   status: number
   message: string
   code?: string
 }
 
-// Tipos específicos para login
 export interface LoginRequest {
   username: string
   password: string
@@ -31,24 +28,22 @@ export interface LoginResponse {
   error?: string
 }
 
-// Tipos para errores de fetch
 export class FetchError extends Error {
   constructor(
     public status: number,
     public statusText: string,
-    public data?: any
+    public data?: unknown
   ) {
     super(`HTTP error! status: ${status}`)
     this.name = 'FetchError'
   }
 }
 
-// Función helper para manejar errores de fetch
-export async function handleApiResponse<T = any>(
+export async function handleApiResponse<T = unknown>(
   response: Response
 ): Promise<T> {
   if (!response.ok) {
-    let errorData: any
+    let errorData: unknown
     try {
       errorData = await response.json()
     } catch {

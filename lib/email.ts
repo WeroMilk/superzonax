@@ -1,7 +1,8 @@
-import nodemailer from 'nodemailer';
-import * as XLSX from 'xlsx';
-import fs from 'fs';
-import path from 'path';
+import nodemailer from 'nodemailer'
+import * as XLSX from 'xlsx-js-style'
+import fs from 'fs'
+import path from 'path'
+import { getDataDir } from './vercel-utils'
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -9,39 +10,63 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER || '',
     pass: process.env.GMAIL_APP_PASSWORD || '',
   },
-});
+})
 
 export interface EmailConfig {
-  reportType: 'attendance' | 'consejo_tecnico' | 'reporte_trimestral';
-  recipients: string[];
-  files: Array<{ path: string; name: string }>;
-  subject: string;
-  body: string;
+  reportType: 'attendance' | 'consejo_tecnico' | 'reporte_trimestral'
+  recipients: string[]
+  files: Array<{ path: string; name: string; schoolId?: string }>
+  subject: string
+  body: string
 }
 
 export async function sendEmail(config: EmailConfig): Promise<{ success: boolean; error?: string }> {
   try {
-    const excelPath = await createConsolidatedExcel(config.files, config.reportType);
-    
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      return { success: false, error: 'Configuración de email no encontrada. Por favor configura GMAIL_USER y GMAIL_APP_PASSWORD en Vercel.' }
+    }
+
+    const attachments: Array<{ filename: string; path: string }> = []
+    let tempExcelPath: string | null = null
+
+    if (config.reportType === 'attendance') {
+      tempExcelPath = await createConsolidatedExcel(config.files, config.reportType)
+      attachments.push({
+        filename: `Consolidado_Asistencia_${new Date().toISOString().split('T')[0]}.xlsx`,
+        path: tempExcelPath,
+      })
+    } else {
+      for (const file of config.files) {
+        if (fs.existsSync(file.path)) {
+          const fileExtension = path.extname(file.path)
+          attachments.push({
+            filename: `${file.name}${fileExtension}`,
+            path: file.path,
+          })
+        }
+      }
+    }
+
+    if (attachments.length === 0) {
+      return { success: false, error: 'No hay archivos para adjuntar' }
+    }
+
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: config.recipients.join(', '),
       subject: config.subject,
       html: config.body,
-      attachments: [
-        {
-          filename: `Consolidado_${config.reportType}_${new Date().toISOString().split('T')[0]}.xlsx`,
-          path: excelPath,
-        },
-      ],
-    });
+      attachments,
+    })
 
-    fs.unlinkSync(excelPath);
+    if (tempExcelPath && fs.existsSync(tempExcelPath)) {
+      fs.unlinkSync(tempExcelPath)
+    }
 
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error enviando correo:', error);
-    return { success: false, error: error.message };
+    return { success: true }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return { success: false, error: errorMessage }
   }
 }
 
@@ -49,38 +74,86 @@ async function createConsolidatedExcel(
   files: Array<{ path: string; name: string }>,
   reportType: string
 ): Promise<string> {
-  const workbook = XLSX.utils.book_new();
+  const workbook = XLSX.utils.book_new()
 
-  for (const file of files) {
-    if (fs.existsSync(file.path)) {
-      const fileBuffer = fs.readFileSync(file.path);
-      const fileExtension = path.extname(file.path).toLowerCase();
-      
-      let data: any;
-      if (fileExtension === '.xlsx' || fileExtension === '.xls') {
-        data = XLSX.read(fileBuffer, { type: 'buffer' });
-        data.SheetNames.forEach((sheetName: string) => {
-          const worksheet = data.Sheets[sheetName];
-          XLSX.utils.book_append_sheet(workbook, worksheet, `${file.name}_${sheetName}`);
-        });
+  if (reportType === 'attendance') {
+    const schools = [
+      { id: 'sec6', name: 'Secundaria 6', sheetName: 'Secundaria 6' },
+      { id: 'sec60', name: 'Secundaria 60', sheetName: 'Secundaria 60' },
+      { id: 'sec72', name: 'Secundaria 72', sheetName: 'Secundaria 72' }
+    ]
+
+    for (const school of schools) {
+      const schoolFile = files.find(f => 
+        f.schoolId === school.id ||
+        f.name.includes(school.name) || 
+        f.path.includes(school.id)
+      )
+
+      if (schoolFile && fs.existsSync(schoolFile.path)) {
+        try {
+          const fileBuffer = fs.readFileSync(schoolFile.path)
+          const fileExtension = path.extname(schoolFile.path).toLowerCase()
+          
+          if (fileExtension === '.xlsx' || fileExtension === '.xls') {
+            const data = XLSX.read(fileBuffer, { type: 'buffer' })
+            if (data.SheetNames.length > 0) {
+              const worksheet = data.Sheets[data.SheetNames[0]]
+              XLSX.utils.book_append_sheet(workbook, worksheet, school.sheetName)
+            }
+          } else {
+            const worksheet = XLSX.utils.aoa_to_sheet([[`Archivo: ${schoolFile.name}`, 'Tipo: No Excel']])
+            XLSX.utils.book_append_sheet(workbook, worksheet, school.sheetName)
+          }
+        } catch {
+          const worksheet = XLSX.utils.aoa_to_sheet([[`Error al leer: ${schoolFile.name}`]])
+          XLSX.utils.book_append_sheet(workbook, worksheet, school.sheetName)
+        }
       } else {
-        const worksheet = XLSX.utils.aoa_to_sheet([[`Archivo: ${file.name}`]]);
-        XLSX.utils.book_append_sheet(workbook, worksheet, file.name.substring(0, 31));
+        const worksheet = XLSX.utils.aoa_to_sheet([['No hay datos para esta escuela']])
+        XLSX.utils.book_append_sheet(workbook, worksheet, school.sheetName)
+      }
+    }
+  } else {
+    for (const file of files) {
+      if (fs.existsSync(file.path)) {
+        try {
+          const fileBuffer = fs.readFileSync(file.path)
+          const fileExtension = path.extname(file.path).toLowerCase()
+          
+          if (fileExtension === '.xlsx' || fileExtension === '.xls') {
+            const data = XLSX.read(fileBuffer, { type: 'buffer' })
+            data.SheetNames.forEach((sheetName: string) => {
+              const worksheet = data.Sheets[sheetName]
+              const sheetNameSafe = `${file.name}_${sheetName}`.substring(0, 31).replace(/[\\/?*\[\]]/g, '_')
+              XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameSafe)
+            })
+          } else {
+            const worksheet = XLSX.utils.aoa_to_sheet([[`Archivo: ${file.name}`, 'Tipo: No Excel']])
+            const sheetNameSafe = file.name.substring(0, 31).replace(/[\\/?*\[\]]/g, '_')
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameSafe)
+          }
+        } catch {
+          const worksheet = XLSX.utils.aoa_to_sheet([[`Error al leer: ${file.name}`]])
+          const sheetNameSafe = file.name.substring(0, 31).replace(/[\\/?*\[\]]/g, '_')
+          XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameSafe)
+        }
       }
     }
   }
 
   if (workbook.SheetNames.length === 0) {
-    const worksheet = XLSX.utils.aoa_to_sheet([['No hay archivos para consolidar']]);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sin datos');
+    const worksheet = XLSX.utils.aoa_to_sheet([['No hay archivos para consolidar']])
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sin datos')
   }
 
-  const outputPath = path.join(process.cwd(), 'data', `temp_${Date.now()}.xlsx`);
-  const outputDir = path.dirname(outputPath);
+  const dataDir = getDataDir()
+  const outputPath = path.join(dataDir, `temp_${Date.now()}.xlsx`)
+  const outputDir = path.dirname(outputPath)
   if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+    fs.mkdirSync(outputDir, { recursive: true })
   }
   
-  XLSX.writeFile(workbook, outputPath);
-  return outputPath;
+  XLSX.writeFile(workbook, outputPath, { cellStyles: true })
+  return outputPath
 }

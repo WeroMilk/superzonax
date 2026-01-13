@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
+import { unlink } from 'fs/promises'
+import { join } from 'path'
 import { getUploadDir } from '@/lib/vercel-utils'
 
-const UPLOAD_DIR = getUploadDir('evidencias')
+const UPLOAD_DIR = getUploadDir('consejo')
 
 export async function DELETE(
   request: NextRequest,
@@ -17,33 +17,33 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 })
     }
 
-    const evidencias = db.getAllEvidencias()
-    const evidencia = evidencias.find(e => e.id === parseInt(params.id))
+    const allRecords = db.getAllConsejoTecnico()
+    const record = allRecords.find(r => r.id === parseInt(params.id))
     
-    if (!evidencia) {
-      return NextResponse.json({ success: false, error: 'Evidencia no encontrada' }, { status: 404 })
+    if (!record) {
+      return NextResponse.json({ success: false, error: 'Registro no encontrado' }, { status: 404 })
     }
 
-    if (user.role !== 'admin' && user.role !== evidencia.school_id) {
+    if (user.role !== 'admin' && record.school_id !== user.role) {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    for (const filePath of evidencia.file_paths) {
+    if (record.file) {
       try {
-        await unlink(join(UPLOAD_DIR, filePath))
+        await unlink(join(UPLOAD_DIR, record.file))
       } catch {
         // Ignorar error si el archivo no existe
       }
     }
 
-    const deleted = db.deleteEvidencia(parseInt(params.id))
+    const deleted = db.deleteConsejoTecnico(parseInt(params.id))
     if (!deleted) {
-      return NextResponse.json({ success: false, error: 'Evidencia no encontrada' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Registro no encontrado' }, { status: 404 })
     }
+
     return NextResponse.json({ success: true })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
-

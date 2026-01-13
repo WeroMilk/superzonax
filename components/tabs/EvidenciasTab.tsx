@@ -53,7 +53,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSchool, setFilterSchool] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [selectedImage, setSelectedImage] = useState<{ evidencia: Evidencia; index: number } | null>(null)
   const [previewImages, setPreviewImages] = useState<string[]>([])
 

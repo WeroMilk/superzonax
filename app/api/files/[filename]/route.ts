@@ -2,17 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { getDataDir } from '@/lib/vercel-utils'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: Promise<{ filename: string }> | { filename: string } }
 ) {
   try {
-    const filename = params.filename
-    const filePath = join(process.cwd(), 'data', 'uploads', filename)
+    const resolvedParams = 'then' in params ? await params : params
+    const filename = resolvedParams.filename
+    
+    if (!filename || filename.trim() === '') {
+      return NextResponse.json({ error: 'Nombre de archivo no válido' }, { status: 400 })
+    }
+    const dataDir = getDataDir()
+    const filePath = join(dataDir, 'uploads', filename)
 
-    // Buscar en diferentes subdirectorios
     const possiblePaths = [
+      join(dataDir, 'uploads', 'attendance', filename),
+      join(dataDir, 'uploads', 'consejo', filename),
+      join(dataDir, 'uploads', 'trimestral', filename),
+      join(dataDir, 'uploads', 'evidencias', filename),
+      join(dataDir, 'uploads', 'documentos', filename),
+      join(dataDir, 'uploads', 'events', filename),
       join(process.cwd(), 'data', 'uploads', 'attendance', filename),
       join(process.cwd(), 'data', 'uploads', 'consejo', filename),
       join(process.cwd(), 'data', 'uploads', 'trimestral', filename),
@@ -31,10 +46,27 @@ export async function GET(
     }
 
     if (!foundPath) {
-      return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 })
+      return NextResponse.json({ 
+        error: 'Archivo no encontrado',
+        searchedPaths: possiblePaths.slice(0, 3)
+      }, { status: 404 })
     }
 
-    const fileBuffer = await readFile(foundPath)
+    let fileBuffer: Buffer
+    try {
+      fileBuffer = await readFile(foundPath)
+    } catch (readError) {
+      const errorMessage = readError instanceof Error ? readError.message : 'Error desconocido al leer archivo'
+      return NextResponse.json({ 
+        error: 'Error al leer archivo',
+        details: errorMessage
+      }, { status: 500 })
+    }
+    
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return NextResponse.json({ error: 'Archivo vacío o corrupto' }, { status: 500 })
+    }
+    
     const ext = filename.split('.').pop()?.toLowerCase()
 
     const contentType: Record<string, string> = {
@@ -56,10 +88,13 @@ export async function GET(
       headers: {
         'Content-Type': contentType[ext || ''] || 'application/octet-stream',
         'Content-Disposition': isImage ? `inline; filename="${filename}"` : `attachment; filename="${filename}"`,
+        'Content-Length': fileBuffer.length.toString(),
+        'Cache-Control': 'no-cache',
       },
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 

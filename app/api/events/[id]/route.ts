@@ -3,8 +3,9 @@ import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
 import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
+import { getUploadDir } from '@/lib/vercel-utils'
 
-const UPLOAD_DIR = join(process.cwd(), 'data', 'uploads', 'events')
+const UPLOAD_DIR = getUploadDir('events')
 
 export async function PUT(
   request: NextRequest,
@@ -32,13 +33,12 @@ export async function PUT(
 
     let imagePath = existingEvent.image_path || null
     
-    // Si hay una nueva imagen, guardarla y eliminar la anterior si existe
     if (imageFile) {
       await mkdir(UPLOAD_DIR, { recursive: true })
       if (existingEvent.image_path) {
         try {
           await unlink(join(UPLOAD_DIR, existingEvent.image_path))
-        } catch (error) {
+        } catch {
           // Ignorar error si el archivo no existe
         }
       }
@@ -62,8 +62,9 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 
@@ -84,12 +85,11 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }
 
-    // Eliminar imagen si existe
     if (event.image_path) {
       try {
         await unlink(join(UPLOAD_DIR, event.image_path))
-      } catch (error) {
-        console.error('Error deleting event image:', error)
+      } catch {
+        // Ignorar error si el archivo no existe
       }
     }
 
@@ -98,8 +98,9 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 

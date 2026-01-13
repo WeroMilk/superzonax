@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FileText, Mail, Calendar, Download } from 'lucide-react'
-import { useDropzone } from 'react-dropzone'
+import { Upload, FileText, Mail, Calendar, Download, Trash2, Save } from 'lucide-react'
 import { formatDate, getTodayDate } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import EmailSelector from '@/components/EmailSelector'
+import { generateAttendanceExcel, workbookToBlob, AttendanceSchoolData } from '@/lib/excel-generator'
 
 interface User {
   id: number
@@ -26,10 +26,14 @@ interface AttendanceRecord {
 
 export default function AsistenciaTab({ user }: { user: User }) {
   const [date, setDate] = useState(getTodayDate())
-  const [attendanceFile, setAttendanceFile] = useState<File | null>(null)
+  const [turno, setTurno] = useState('Turno Matutino')
+  const [schools, setSchools] = useState<AttendanceSchoolData[]>([
+    { ct: '', totalAlumnos: 0, totalMaestros: 0, asistenciaMaestros: 0, asistenciaAlumnos: 0 }
+  ])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
+  const [lastUploaded, setLastUploaded] = useState<AttendanceRecord | null>(null)
   const [emailRecipients, setEmailRecipients] = useState('')
   const [showEmailModal, setShowEmailModal] = useState(false)
 
@@ -40,9 +44,46 @@ export default function AsistenciaTab({ user }: { user: User }) {
     if (isAdmin) {
       fetchRecords()
     } else {
-      fetchMyRecords()
+      loadLastUploaded()
     }
   }, [isAdmin])
+
+  useEffect(() => {
+    if (!isAdmin && lastUploaded) {
+      const storageKey = `lastUploaded_attendance_${user.role}`
+      localStorage.setItem(storageKey, JSON.stringify(lastUploaded))
+    }
+  }, [lastUploaded, isAdmin, user.role])
+
+  const loadLastUploaded = async () => {
+    const storageKey = `lastUploaded_attendance_${user.role}`
+    const stored = localStorage.getItem(storageKey)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setLastUploaded(parsed)
+      } catch {
+        // Error al parsear, continuar sin datos guardados
+      }
+    }
+    await fetchLastRecord()
+  }
+
+  const fetchLastRecord = async () => {
+    try {
+      const response = await fetch(`/api/attendance?school=${schoolId}`)
+      const data = await response.json()
+      if (data.success && data.records.length > 0) {
+        const sortedRecords = data.records.sort((a: AttendanceRecord, b: AttendanceRecord) => {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+        const latest = sortedRecords[0]
+        setLastUploaded(latest)
+      }
+    } catch {
+      // Error al obtener registros
+    }
+  }
 
   const fetchRecords = async () => {
     try {
@@ -51,53 +92,86 @@ export default function AsistenciaTab({ user }: { user: User }) {
       if (data.success) {
         setRecords(data.records)
       }
-    } catch (error) {
-      console.error('Error fetching records:', error)
+    } catch {
+      // Error al obtener registros
     }
   }
 
-  const fetchMyRecords = async () => {
+
+  const handleDeleteRecord = async (recordId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+      return
+    }
+
     try {
-      const response = await fetch(`/api/attendance?school=${schoolId}`)
+      const response = await fetch(`/api/attendance/${recordId}`, {
+        method: 'DELETE',
+      })
+
       const data = await response.json()
+
       if (data.success) {
-        setRecords(data.records)
+        setMessage({ type: 'success', text: 'Registro eliminado correctamente' })
+        const storageKey = `lastUploaded_attendance_${user.role}`
+        localStorage.removeItem(storageKey)
+        setLastUploaded(null)
+        await fetchLastRecord()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al eliminar registro' })
       }
     } catch (error) {
-      console.error('Error fetching records:', error)
+      setMessage({ type: 'error', text: 'Error de conexión' })
     }
   }
 
-  const onFileDrop = (acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setAttendanceFile(acceptedFiles[0])
+  const removeSchool = (index: number) => {
+    if (schools.length > 1) {
+      setSchools(schools.filter((_, i) => i !== index))
     }
   }
 
-  const attendanceDropzone = useDropzone({
-    onDrop: onFileDrop,
-    accept: {
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-    },
-    multiple: false,
-  })
+  const updateSchool = (index: number, field: keyof AttendanceSchoolData, value: string | number) => {
+    const updated = [...schools]
+    updated[index] = { ...updated[index], [field]: value }
+    setSchools(updated)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!attendanceFile) {
-      setMessage({ type: 'error', text: 'Por favor sube el archivo de asistencia' })
+    
+    // Validar que todos los campos estén llenos
+    const hasEmptyFields = schools.some(school => 
+      !school.ct || 
+      school.totalAlumnos <= 0 || 
+      school.totalMaestros <= 0 || 
+      school.asistenciaMaestros < 0 || 
+      school.asistenciaAlumnos < 0
+    )
+
+    if (hasEmptyFields) {
+      setMessage({ type: 'error', text: 'Por favor completa todos los campos de todas las escuelas' })
       return
     }
 
     setLoading(true)
     setMessage(null)
 
-    const formData = new FormData()
-    formData.append('date', date)
-    formData.append('attendanceFile', attendanceFile)
-
     try {
+      // Generar el archivo Excel
+      const workbook = generateAttendanceExcel({ date, turno, schools })
+      const blob = workbookToBlob(workbook)
+      
+      // Convertir blob a ArrayBuffer para asegurar que se envíe correctamente
+      const arrayBuffer = await blob.arrayBuffer()
+      const file = new File([arrayBuffer], `asistencia_${date}.xlsx`, { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      })
+
+      // Subir el archivo generado
+      const formData = new FormData()
+      formData.append('date', date)
+      formData.append('attendanceFile', file)
+
       const response = await fetch('/api/attendance', {
         method: 'POST',
         body: formData,
@@ -106,11 +180,22 @@ export default function AsistenciaTab({ user }: { user: User }) {
       const data = await response.json()
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'Asistencia subida correctamente' })
-        setAttendanceFile(null)
-        fetchMyRecords()
+        // Descargar el archivo Excel generado automáticamente
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `asistencia_${date}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+        
+        // Actualizar el último archivo subido
+        await fetchLastRecord()
+        
+        setMessage({ type: 'success', text: 'Asistencia guardada correctamente. El archivo Excel se ha generado y descargado automáticamente.' })
       } else {
-        setMessage({ type: 'error', text: data.error || 'Error al subir asistencia' })
+        setMessage({ type: 'error', text: data.error || 'Error al guardar asistencia' })
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error de conexión' })
@@ -187,9 +272,11 @@ export default function AsistenciaTab({ user }: { user: User }) {
                           ✓ Archivo subido
                         </p>
                         <a
-                          href={`/api/files/${schoolRecords[0].students_file}`}
-                          download
+                          href={`/api/files/${encodeURIComponent(schoolRecords[0].students_file)}`}
+                          download={schoolRecords[0].students_file}
                           className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 text-sm"
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
                           <Download className="w-4 h-4" />
                           <span>Descargar archivo</span>
@@ -272,11 +359,11 @@ export default function AsistenciaTab({ user }: { user: User }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-3 overflow-hidden" style={{ maxHeight: '100vh' }}>
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card"
+        className="card flex-shrink-0 p-3 sm:p-4"
       >
         <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 flex items-center space-x-2">
           <Upload className="w-5 h-5 text-primary-500" />
@@ -284,39 +371,141 @@ export default function AsistenciaTab({ user }: { user: User }) {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <DatePicker
-            value={date}
-            onChange={setDate}
-            type="date"
-            label="Fecha"
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <DatePicker
+                value={date}
+                onChange={setDate}
+                type="date"
+                label="Fecha"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Turno
+              </label>
+              <select
+                value={turno}
+                onChange={(e) => setTurno(e.target.value)}
+                className="input-field w-full text-sm"
+                required
+              >
+                <option value="Turno Matutino">Turno Matutino</option>
+                <option value="Turno Vespertino">Turno Vespertino</option>
+              </select>
+            </div>
+          </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Archivo de Asistencia (Excel) - Alumnos y Personal
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Datos de Escuela
             </label>
-            <div
-              {...attendanceDropzone.getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors ${
-                attendanceDropzone.isDragActive
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-300 hover:border-primary-400'
-              }`}
-            >
-              <input {...attendanceDropzone.getInputProps()} />
-              <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-              {attendanceFile ? (
-                <p className="text-primary-600 font-medium text-sm">{attendanceFile.name}</p>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-1 text-xs">
-                    Arrastra el archivo aquí o haz clic para seleccionar
-                  </p>
-                  <p className="text-xs text-gray-500">Solo archivos Excel (.xlsx, .xls)</p>
-                  <p className="text-xs text-gray-400 mt-1">El archivo debe contener datos de alumnos y personal</p>
-                </div>
-              )}
+            <div className="space-y-2.5">
+              {schools.map((school, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card-compact p-2.5 border border-gray-200"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-sm text-gray-700 mb-3">Secundaria Técnica</h4>
+                    {schools.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSchool(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          CT (Clave de Trabajo)
+                        </label>
+                        <input
+                          type="text"
+                          value={school.ct}
+                          onChange={(e) => updateSchool(index, 'ct', e.target.value.toUpperCase())}
+                          className="input-field w-full text-sm"
+                          placeholder="Ej: 26DST0072J"
+                          required
+                          style={{ textTransform: 'uppercase' }}
+                        />
+                      </div>
+                      <div></div>
+                      <div></div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Total Alumnos
+                        </label>
+                        <input
+                          type="number"
+                          value={school.totalAlumnos || ''}
+                          onChange={(e) => updateSchool(index, 'totalAlumnos', parseInt(e.target.value) || 0)}
+                          className="input-field w-full text-sm"
+                          min="1"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Asistencia Alumnos
+                        </label>
+                        <input
+                          type="number"
+                          value={school.asistenciaAlumnos || ''}
+                          onChange={(e) => updateSchool(index, 'asistenciaAlumnos', parseInt(e.target.value) || 0)}
+                          className="input-field w-full text-sm"
+                          min="0"
+                          max={school.totalAlumnos}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Total Maestros
+                        </label>
+                        <input
+                          type="number"
+                          value={school.totalMaestros || ''}
+                          onChange={(e) => updateSchool(index, 'totalMaestros', parseInt(e.target.value) || 0)}
+                          className="input-field w-full text-sm"
+                          min="1"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Asistencia Maestros
+                        </label>
+                        <input
+                          type="number"
+                          value={school.asistenciaMaestros || ''}
+                          onChange={(e) => updateSchool(index, 'asistenciaMaestros', parseInt(e.target.value) || 0)}
+                          className="input-field w-full text-sm"
+                          min="0"
+                          max={school.totalMaestros}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
 
@@ -332,48 +521,78 @@ export default function AsistenciaTab({ user }: { user: User }) {
             </div>
           )}
 
-          <button type="submit" className="btn-primary w-full text-sm py-2" disabled={loading}>
-            {loading ? 'Subiendo...' : 'Subir Asistencia'}
+          <button type="submit" className="btn-primary text-sm py-2 px-4 flex items-center justify-center space-x-2 mx-auto" disabled={loading}>
+            {loading ? (
+              <>
+                <span>Generando archivo...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Guardar Asistencia y Generar Excel</span>
+              </>
+            )}
           </button>
         </form>
       </motion.div>
 
-      {/* Historial */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card flex-1 overflow-hidden flex flex-col"
-      >
-        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Mis Registros</h3>
-        <div className="space-y-1 overflow-y-auto flex-1">
-          {records.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No hay registros aún</p>
-          ) : (
-            records.map((record) => (
-              <div key={record.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg text-sm">
-                <div>
-                  <p className="font-medium">{formatDate(record.date)}</p>
-                  <p className="text-xs text-gray-600">
-                    {record.students_file ? 'Archivo subido' : 'Sin archivo'}
+      {/* Último Archivo Subido */}
+      {!isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card flex flex-col flex-shrink-0 p-3"
+          style={{ maxHeight: '250px', display: 'flex', flexDirection: 'column' }}
+        >
+          <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-2 flex-shrink-0">Último Archivo Subido</h3>
+          <div 
+            className="flex-1 flex items-center justify-center"
+            style={{ 
+              overflowY: 'auto', 
+              overflowX: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              maxHeight: '100%',
+              minHeight: 0
+            }}
+          >
+            {!lastUploaded ? (
+              <p className="text-gray-500 text-center text-sm py-3">No hay archivos subidos aún</p>
+            ) : (
+              <div className="w-full flex flex-col items-center justify-center space-y-3 p-3">
+                <div className="flex flex-col items-center space-y-1">
+                  <p className="font-medium text-base">{formatDate(lastUploaded.date)}</p>
+                  <p className="text-sm text-gray-600">
+                    {lastUploaded.students_file ? 'Archivo subido' : 'Sin archivo'}
                   </p>
                 </div>
                 <div className="flex space-x-2">
-                  {record.students_file && (
+                  {lastUploaded.students_file && (
                     <a
-                      href={`/api/files/${record.students_file}`}
-                      download
-                      className="text-primary-600 hover:text-primary-700"
+                      href={`/api/files/${encodeURIComponent(lastUploaded.students_file)}`}
+                      download={lastUploaded.students_file}
+                      className="btn-primary flex items-center space-x-2 px-3 py-1.5 text-sm"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <Download className="w-4 h-4" />
+                      <span>Descargar</span>
                     </a>
                   )}
+                  <button
+                    onClick={() => handleDeleteRecord(lastUploaded.id)}
+                    className="btn-secondary flex items-center space-x-2 px-3 py-1.5 text-sm text-red-600 border-red-500"
+                    title="Eliminar registro"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Eliminar</span>
+                  </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </motion.div>
+            )}
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }

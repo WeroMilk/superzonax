@@ -118,7 +118,7 @@ export default function EventosTab({ user }: { user: User }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set())
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
   const imageDropzone = useDropzone({
     onDrop: (acceptedFiles) => {

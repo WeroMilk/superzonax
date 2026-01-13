@@ -20,6 +20,7 @@ interface Documento {
   file_path: string
   file_type: string
   uploaded_by: string
+  allowed_schools: string[]
   created_at: string
 }
 
@@ -28,6 +29,7 @@ export default function RepositorioTab({ user }: { user: User }) {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [allowedSchools, setAllowedSchools] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -77,6 +79,7 @@ export default function RepositorioTab({ user }: { user: User }) {
     formData.append('title', title)
     formData.append('description', description)
     formData.append('file', file)
+    formData.append('allowed_schools', allowedSchools.join(','))
 
     try {
       const response = await fetch('/api/documentos', {
@@ -91,6 +94,7 @@ export default function RepositorioTab({ user }: { user: User }) {
         setFile(null)
         setTitle('')
         setDescription('')
+        setAllowedSchools([])
         setShowUploadModal(false)
         fetchDocumentos()
       } else {
@@ -111,10 +115,13 @@ export default function RepositorioTab({ user }: { user: User }) {
       const data = await response.json()
 
       if (data.success) {
+        setMessage({ type: 'success', text: 'Documento eliminado correctamente' })
         fetchDocumentos()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al eliminar documento' })
       }
     } catch (error) {
-      console.error('Error deleting documento:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al eliminar documento' })
     }
   }
 
@@ -141,6 +148,18 @@ export default function RepositorioTab({ user }: { user: User }) {
             <span>Subir Documento</span>
           </button>
         </motion.div>
+      )}
+
+      {message && (
+        <div
+          className={`p-2 rounded-lg text-sm ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
       )}
 
       <motion.div
@@ -174,6 +193,13 @@ export default function RepositorioTab({ user }: { user: User }) {
                     <p className="text-xs text-gray-500 mt-1">
                       {formatDateTime(documento.created_at)}
                     </p>
+                    {isAdmin && documento.allowed_schools && documento.allowed_schools.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Visible para: {documento.allowed_schools.map(s => 
+                          s === 'sec6' ? 'Sec. 6' : s === 'sec60' ? 'Sec. 60' : 'Sec. 72'
+                        ).join(', ')}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-1 flex-shrink-0">
@@ -261,6 +287,36 @@ export default function RepositorioTab({ user }: { user: User }) {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Escuelas que pueden ver este documento (dejar vacío para todas)
+                </label>
+                <div className="space-y-2">
+                  {['sec6', 'sec60', 'sec72'].map((school) => (
+                    <label key={school} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowedSchools.includes(school)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAllowedSchools([...allowedSchools, school])
+                          } else {
+                            setAllowedSchools(allowedSchools.filter(s => s !== school))
+                          }
+                        }}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {school === 'sec6' ? 'Secundaria 6' : school === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Si no seleccionas ninguna, todas las escuelas podrán ver este documento
+                </p>
+              </div>
+
               {message && (
                 <div
                   className={`p-2 rounded-lg text-sm ${
@@ -284,6 +340,7 @@ export default function RepositorioTab({ user }: { user: User }) {
                     setFile(null)
                     setTitle('')
                     setDescription('')
+                    setAllowedSchools([])
                   }}
                   className="btn-secondary flex-1 text-sm py-2"
                 >

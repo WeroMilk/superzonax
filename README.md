@@ -22,17 +22,23 @@ Sistema web moderno y responsive para la gestión de la Supervisión de Zona No.
 - **JSON** para base de datos (sistema simple y eficiente)
 - **Framer Motion** para animaciones
 - **Nodemailer** para envío de correos
-- **XLSX** para consolidación de archivos Excel
+- **XLSX** y **xlsx-js-style** para generación y consolidación de archivos Excel
 
 ## 📋 Requisitos Previos
 
 - Node.js 18+ 
-- npm o yarn
+- pnpm (recomendado) o npm
 
 ## 🔧 Instalación
 
 1. Clona el repositorio o descarga los archivos
 2. Instala las dependencias:
+
+```bash
+pnpm install
+```
+
+O con npm:
 
 ```bash
 npm install
@@ -59,6 +65,12 @@ Para enviar correos electrónicos, necesitas crear una contraseña de aplicació
 ## 🚀 Uso
 
 1. Inicia el servidor de desarrollo:
+
+```bash
+pnpm dev
+```
+
+O con npm:
 
 ```bash
 npm run dev
@@ -152,11 +164,41 @@ Este proyecto es privado y está destinado exclusivamente para uso de la Supervi
 Para producción:
 
 ```bash
+pnpm build
+pnpm start
+```
+
+O con npm:
+
+```bash
 npm run build
 npm start
 ```
 
 El sistema estará disponible en `http://localhost:3000`
+
+## 🚀 Despliegue en Vercel
+
+El proyecto está configurado para desplegarse fácilmente en Vercel:
+
+1. **Conecta tu repositorio de GitHub con Vercel**
+   - Ve a [vercel.com](https://vercel.com)
+   - Importa tu repositorio
+   - Vercel detectará automáticamente Next.js
+
+2. **Configura las variables de entorno en Vercel:**
+   - Ve a Settings → Environment Variables
+   - Agrega las siguientes variables:
+     - `JWT_SECRET`: Una clave secreta segura (ej: `tu-clave-secreta-super-segura-aqui`)
+     - `GMAIL_USER`: Tu correo de Gmail (ej: `tu-correo@gmail.com`)
+     - `GMAIL_APP_PASSWORD`: Tu contraseña de aplicación de Gmail
+
+3. **El despliegue se realizará automáticamente** con cada push a la rama principal
+
+### Notas importantes para Vercel:
+- El sistema usa el sistema de archivos `/tmp` de Vercel para almacenar la base de datos y archivos subidos
+- Los archivos se eliminan cuando la función se reinicia (ephemeral filesystem)
+- Para producción, considera usar una base de datos persistente si necesitas datos permanentes
 
 ---
 

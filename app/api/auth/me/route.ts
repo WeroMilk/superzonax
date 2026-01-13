@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
     const userData = db.getUserById(user.id)
     
     return NextResponse.json({ success: true, user: userData })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     )
   }

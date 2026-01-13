@@ -3,8 +3,9 @@ import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
 import db from '@/lib/db-json'
 import { join } from 'path'
+import { getUploadDir } from '@/lib/vercel-utils'
 
-const UPLOAD_DIR = join(process.cwd(), 'data', 'uploads', 'trimestral')
+const UPLOAD_DIR = getUploadDir('trimestral')
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,8 +49,9 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 })
     }
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   }
 }
 
