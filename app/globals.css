@@ -36,11 +36,14 @@
     -webkit-overflow-scrolling: touch;
   }
   
+<<<<<<< HEAD
   body:has(.login-page-container) {
     background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
     background-color: #8B1538 !important;
   }
   
+=======
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
   #__next {
     margin: 0 !important;
     padding: 0 !important;
@@ -53,13 +56,22 @@
     position: relative;
   }
 
+<<<<<<< HEAD
   /* Estilos específicos para la página de login - fondo guinda completo */
+=======
+  /* Estilos específicos para la página de login - eliminar márgenes y fondo blanco */
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
   body:has(.login-page-container) {
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+<<<<<<< HEAD
     background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
     background-color: #8B1538 !important;
+=======
+    background: transparent !important;
+    background-color: transparent !important;
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -78,8 +90,13 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+<<<<<<< HEAD
     background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
     background-color: #8B1538 !important;
+=======
+    background: transparent !important;
+    background-color: transparent !important;
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -98,8 +115,13 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+<<<<<<< HEAD
     background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
     background-color: #8B1538 !important;
+=======
+    background: transparent !important;
+    background-color: transparent !important;
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -117,6 +139,7 @@
   /* Estilos específicos para móviles - cubrir safe area de iOS */
   @media (max-width: 768px) {
     .login-page-container {
+<<<<<<< HEAD
       width: 100vw !important;
       height: 100vh !important;
       min-width: 100vw !important;
@@ -136,12 +159,30 @@
       left: 0 !important;
       right: 0 !important;
       bottom: 0 !important;
+=======
+      width: calc(100vw + 100px) !important;
+      height: calc(100vh + 100px) !important;
+      min-width: calc(100vw + 100px) !important;
+      min-height: calc(100vh + 100px) !important;
+      top: -50px !important;
+      left: -50px !important;
+      right: -50px !important;
+      bottom: -50px !important;
+    }
+    
+    .login-page-container > div {
+      top: 50px !important;
+      left: 50px !important;
+      right: 50px !important;
+      bottom: 50px !important;
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
     }
   }
 
   /* Estilos específicos para tablets */
   @media (min-width: 769px) and (max-width: 1024px) {
     .login-page-container {
+<<<<<<< HEAD
       width: 100vw !important;
       height: 100vh !important;
       min-width: 100vw !important;
@@ -161,6 +202,23 @@
       left: 0 !important;
       right: 0 !important;
       bottom: 0 !important;
+=======
+      width: calc(100vw + 60px) !important;
+      height: calc(100vh + 60px) !important;
+      min-width: calc(100vw + 60px) !important;
+      min-height: calc(100vh + 60px) !important;
+      top: -30px !important;
+      left: -30px !important;
+      right: -30px !important;
+      bottom: -30px !important;
+    }
+    
+    .login-page-container > div {
+      top: 30px !important;
+      left: 30px !important;
+      right: 30px !important;
+      bottom: 30px !important;
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
     }
   }
 

@@ -175,6 +175,7 @@ export default function LoginPage() {
       style={{ 
         margin: 0, 
         padding: 0, 
+<<<<<<< HEAD
         width: '100vw',
         height: '100vh',
         minWidth: '100vw',
@@ -186,11 +187,25 @@ export default function LoginPage() {
         left: 0,
         right: 0,
         bottom: 0,
+=======
+        width: 'calc(100vw + 50px)',
+        height: 'calc(100vh + 50px)',
+        minWidth: 'calc(100vw + 50px)',
+        minHeight: 'calc(100vh + 50px)',
+        position: 'fixed',
+        top: '-25px',
+        left: '-25px',
+        right: '-25px',
+        bottom: '-25px',
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
         background: 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+<<<<<<< HEAD
         backgroundColor: '#8B1538',
+=======
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
         zIndex: 0,
       }}
       >
@@ -201,17 +216,27 @@ export default function LoginPage() {
           height: '100vh', 
           zIndex: 1, 
           position: 'absolute', 
+<<<<<<< HEAD
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
+=======
+          top: '25px',
+          left: '25px',
+          right: '25px',
+          bottom: '25px',
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
           margin: 0,
           padding: 'clamp(0.5rem, 2vw, 1rem)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
           paddingTop: 'clamp(10vh, 18vh, 22vh)',
+<<<<<<< HEAD
           backgroundColor: 'transparent',
+=======
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
         }}
       >
         <motion.div
@@ -280,6 +305,7 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={username}
+<<<<<<< HEAD
                   onChange={(e) => {
                     const value = e.target.value
                     const lowercasedValue = value.length > 0 
@@ -292,6 +318,11 @@ export default function LoginPage() {
                   autoCapitalize="none"
                   autoCorrect="off"
                   autoComplete="username"
+=======
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input-field pl-10 bg-gray-50"
+                  placeholder="Ingresa tu usuario"
+>>>>>>> c88231c36059c9bf4dcc02f63e5de8243b508d2d
                   required
                 />
               </div>
