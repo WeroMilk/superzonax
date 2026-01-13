@@ -23,7 +23,7 @@ export interface LoginResponse {
   success: boolean
   token?: string
   user?: {
-    id: string
+    id: number
     username: string
     role: 'admin' | 'sec6' | 'sec60' | 'sec72'
     school_name: string
