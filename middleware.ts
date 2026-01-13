@@ -2,14 +2,21 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
+  // Permitir todas las rutas API sin restricciones
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
+  // Permitir archivos estáticos y recursos de Next.js
   if (
-    request.nextUrl.pathname.startsWith('/api/auth/login') ||
     request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/api/files')
+    request.nextUrl.pathname.startsWith('/static') ||
+    request.nextUrl.pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|css|js)$/)
   ) {
     return NextResponse.next()
   }
 
+  // Proteger rutas del dashboard
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     const token = request.cookies.get('auth-token')
     if (!token) {
@@ -21,6 +28,8 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+  ],
 }
 
