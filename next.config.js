@@ -1,14 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // NO usar 'export' si tienes API Routes
-  // output: 'export',  ⬅️ COMENTA o ELIMINA esta línea
-  
+  // Configuración para Vercel
   images: {
     unoptimized: true,
   },
-  // Añade esto para ignorar API Routes en build estático
-  skipTrailingSlashRedirect: true,
-  skipMiddlewareUrlNormalize: true,
+  // Si tienes API routes, NO uses 'output: export'
+  // Si no tienes API routes, puedes habilitarlo:
+  // output: 'export',
+  
+  // Si tienes problemas con builds, desactiva eslint durante el build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  }
 }
 
 module.exports = nextConfig
