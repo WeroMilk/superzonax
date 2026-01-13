@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "export": "next build",
+    "deploy": "npm run build && gh-pages -d out"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "eslint": "^8.56.0",
-    "eslint-config-next": "^14.0.4"
+    "eslint-config-next": "^14.0.4",
+    "gh-pages": "^6.1.1"
   }
 }
