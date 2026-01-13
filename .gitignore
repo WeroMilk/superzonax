@@ -1,4 +1,4 @@
-﻿# Dependencias
+# Dependencias
 node_modules/
 .pnp
 .pnp.js
@@ -7,16 +7,15 @@ node_modules/
 coverage/
 .nyc_output
 
-# Next.js build/output
+# Next.js
 .next/
+out/
 .next/cache/
+*.hot-update.*
 .next/static/webpack/
 .next/static/chunks/webpack-*
-.next/types/
-*.hot-update.*
-out/
 
-# ProducciÃ³n
+# Producción
 build/
 dist/
 
@@ -59,8 +58,7 @@ Desktop.ini
 
 # TypeScript
 *.tsbuildinfo
-tsconfig.tsbuildinfo
-# Nota: next-env.d.ts SÃ debe estar en el repo (Next.js lo genera automÃ¡ticamente)
+next-env.d.ts
 
 # Archivos temporales
 *.tmp
@@ -86,6 +84,3 @@ lista_archivos_completa.csv
 # Otros
 .npm-cache/
 .eslintcache
-
-# Scripts temporales (opcional - descomenta si no quieres subirlo)
-# preparar-github.ps1
