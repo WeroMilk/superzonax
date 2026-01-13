@@ -1,10 +1,12 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (DESACTIVADO - Usando Vercel)
 
+# Workflow desactivado - Se está usando Vercel para el despliegue
+# Para reactivarlo, descomenta las líneas de abajo
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: # Permite ejecutar manualmente desde GitHub
+  workflow_dispatch: # Solo ejecución manual (desactivado automático)
+  # push:
+  #   branches:
+  #     - main
 
 # Permisos necesarios para GitHub Pages
 permissions:
@@ -39,7 +41,27 @@ jobs:
     - name: Instalar dependencias
       run: pnpm install --frozen-lockfile
     
-    - name: Construir proyecto
+    - name: Configurar para GitHub Pages (export estático)
+      run: |
+        # Crear backup del next.config.js original
+        cp next.config.js next.config.js.backup
+        # Modificar next.config.js para export estático
+        cat > next.config.js << 'EOF'
+        /** @type {import('next').NextConfig} */
+        const nextConfig = {
+          reactStrictMode: true,
+          output: 'export',
+          basePath: '/supzonax',
+          trailingSlash: true,
+          images: {
+            domains: ['localhost'],
+            unoptimized: true,
+          },
+        }
+        module.exports = nextConfig
+        EOF
+    
+    - name: Construir proyecto para GitHub Pages
       run: pnpm run build
       env:
         NODE_ENV: production
