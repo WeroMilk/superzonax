@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Lock, Shield } from 'lucide-react'
 import Image from 'next/image'
+import { handleApiResponse, FetchError } from '@/lib/types'
+import type { LoginResponse } from '@/lib/types'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -21,26 +23,47 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ username, password }),
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
+      const data = await handleApiResponse<LoginResponse>(response)
 
-      const data = await response.json()
-
-      if (data.success) {
-        // Guardar token en cookie
-        document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`
+      if (data.success && data.token) {
+        // Guardar token en cookie (backup, aunque el servidor ya lo estableció)
+        document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
         router.push('/dashboard')
       } else {
         setError(data.error || 'Error al iniciar sesión')
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error de login:', err)
-      setError(err.message || 'Error de conexión. Por favor verifica que el servidor esté corriendo.')
+      
+      if (err instanceof FetchError) {
+        // Manejar errores HTTP específicos
+        switch (err.status) {
+          case 400:
+            setError('Por favor completa todos los campos')
+            break
+          case 401:
+            setError('Usuario o contraseña incorrectos')
+            break
+          case 405:
+            setError('Método no permitido. Por favor recarga la página.')
+            break
+          case 500:
+            setError('Error del servidor. Por favor intenta más tarde.')
+            break
+          default:
+            setError(err.data?.error || `Error ${err.status}: ${err.statusText}`)
+        }
+      } else if (err instanceof Error) {
+        setError(err.message || 'Error de conexión. Por favor verifica tu conexión a internet.')
+      } else {
+        setError('Error desconocido. Por favor intenta nuevamente.')
+      }
     } finally {
       setLoading(false)
     }
