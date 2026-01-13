@@ -1,0 +1,47 @@
+{
+  "name": "supzonax",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "2.4.6",
+    "@types/jsonwebtoken": "9.0.10",
+    "@types/node": "20.19.28",
+    "@types/nodemailer": "6.4.21",
+    "@types/react": "18.3.27",
+    "@types/react-calendar": "4.1.0",
+    "@types/react-dom": "18.3.7",
+    "autoprefixer": "10.4.23",
+    "bcryptjs": "2.4.3",
+    "clsx": "2.1.1",
+    "date-fns": "3.6.0",
+    "framer-motion": "10.18.0",
+    "jsonwebtoken": "9.0.3",
+    "lucide-react": "0.303.0",
+    "next": "14.2.35",
+    "nodemailer": "6.10.1",
+    "postcss": "8.5.6",
+    "react": "18.3.1",
+    "react-calendar": "4.8.0",
+    "react-dom": "18.3.1",
+    "react-dropzone": "14.3.8",
+    "tailwind-merge": "2.6.0",
+    "tailwindcss": "3.4.19",
+    "typescript": "5.9.3",
+    "xlsx": "0.18.5",
+    "xlsx-js-style": "1.2.0"
+  },
+  "devDependencies": {
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.35",
+    "gh-pages": "6.3.0"
+  }
+}

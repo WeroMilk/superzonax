@@ -1,0 +1,87 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+.nyc_output
+
+# Next.js
+.next/
+out/
+.next/cache/
+*.hot-update.*
+.next/static/webpack/
+.next/static/chunks/webpack-*
+
+# Producción
+build/
+dist/
+
+# Archivos de entorno
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Archivos temporales
+*.tmp
+*.temp
+.cache/
+
+# Base de datos local y uploads (datos sensibles)
+data/db.json
+data/uploads/
+
+# Backups
+*.zip
+*.tar.gz
+*.backup
+backup-*
+
+# Archivos CSV temporales
+lista_archivos_completa.csv
+
+# Vercel
+.vercel
+
+# Otros
+.npm-cache/
+.eslintcache
+package-lock.json

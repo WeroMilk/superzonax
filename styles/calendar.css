@@ -1,0 +1,416 @@
+/* Estilos personalizados para react-calendar con diseño profesional tipo Facebook/Instagram/Tesla */
+.custom-calendar {
+  @apply w-full border-0 bg-white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  padding: 0;
+  padding-bottom: 0.25rem;
+  overflow: visible !important;
+  border-radius: 0.75rem;
+  min-height: auto;
+}
+
+.year-view-calendar {
+  padding-bottom: 0.25rem !important;
+}
+
+.year-view-calendar {
+  padding-bottom: 0.25rem !important;
+}
+
+.custom-calendar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-calendar::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+.custom-calendar::-webkit-scrollbar-thumb {
+  @apply bg-primary-400 rounded-full;
+}
+
+.custom-calendar::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-500;
+}
+
+.custom-calendar abbr {
+  @apply text-gray-700 font-semibold text-xs uppercase no-underline;
+  text-decoration: none !important;
+}
+
+/* Navegación del calendario - Diseño profesional */
+.custom-calendar .react-calendar__navigation {
+  @apply flex items-center justify-between mb-1 p-3 bg-gradient-to-r from-primary-500 to-primary-600;
+  height: auto;
+  border-radius: 0.75rem 0.75rem 0 0;
+  margin-top: 0;
+  min-height: 48px;
+  box-shadow: 0 2px 8px rgba(139, 21, 56, 0.15);
+}
+
+.custom-calendar .react-calendar__navigation button {
+  @apply text-white font-semibold text-sm px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center;
+  min-width: 32px;
+  min-height: 32px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.custom-calendar .react-calendar__navigation button:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(4px);
+}
+
+.custom-calendar .react-calendar__navigation button:active {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.custom-calendar .react-calendar__navigation button:disabled {
+  @apply opacity-40 cursor-not-allowed;
+}
+
+.custom-calendar .react-calendar__navigation__label {
+  @apply text-white font-bold text-lg;
+  pointer-events: none;
+  flex-grow: 1;
+  text-align: center;
+  text-transform: capitalize;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.custom-calendar .react-calendar__navigation__label abbr {
+  text-decoration: none !important;
+  font-size: inherit !important;
+}
+
+.custom-calendar .react-calendar__navigation__arrow {
+  @apply text-white;
+}
+
+/* Días de la semana - Diseño limpio y profesional */
+.custom-calendar .react-calendar__month-view__weekdays {
+  @apply mb-2;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 0.25rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday {
+  @apply text-center text-xs font-semibold text-gray-600 uppercase;
+  padding: 0;
+  line-height: 1.2;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  text-align: center;
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 36px;
+  width: 100%;
+}
+
+.custom-calendar .react-calendar__month-view__weekdays__weekday abbr {
+  @apply text-gray-600 no-underline;
+  font-weight: 600;
+  text-decoration: none !important;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  letter-spacing: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Días del mes - Diseño profesional con mejor espaciado */
+.custom-calendar .react-calendar__month-view__days {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 0.25rem;
+  box-sizing: border-box;
+}
+
+.custom-calendar .react-calendar__tile {
+  @apply relative text-sm font-medium rounded-lg transition-all duration-200;
+  aspect-ratio: 1;
+  max-width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #374151;
+  min-height: 36px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  width: 100% !important;
+  margin: 0 !important;
+  flex: 0 0 auto;
+  padding: 0;
+  font-weight: 500;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.custom-calendar .react-calendar__tile abbr {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.custom-calendar .react-calendar__tile:hover {
+  @apply bg-primary-50 border-primary-200;
+  color: #8B1538;
+  z-index: 1;
+  transform: scale(1.05);
+}
+
+.custom-calendar .react-calendar__tile:active {
+  transform: scale(0.95);
+}
+
+.custom-calendar .react-calendar__tile:disabled {
+  @apply opacity-30 cursor-not-allowed;
+  background: transparent;
+}
+
+.custom-calendar .react-calendar__tile--neighboringMonth {
+  @apply text-gray-300 opacity-0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+/* Día seleccionado - Diseño destacado profesional */
+.custom-calendar .react-calendar__tile--active,
+.custom-calendar-tile.selected {
+  @apply bg-primary-500 border-primary-600 shadow-md;
+  color: white !important;
+  font-weight: 700;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(139, 21, 56, 0.3);
+}
+
+.custom-calendar .react-calendar__tile--active:hover,
+.custom-calendar-tile.selected:hover {
+  @apply bg-primary-600 border-primary-700;
+  color: white !important;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(139, 21, 56, 0.4);
+}
+
+.custom-calendar .react-calendar__tile--active abbr,
+.custom-calendar-tile.selected abbr {
+  color: white !important;
+}
+
+/* Día de hoy - Indicador sutil pero visible */
+.custom-calendar-tile.today {
+  @apply border-primary-400 font-bold;
+  border-width: 2px !important;
+  border-style: solid !important;
+  background: linear-gradient(135deg, rgba(139, 21, 56, 0.08), rgba(139, 21, 56, 0.03));
+  color: #8B1538;
+  box-sizing: border-box !important;
+}
+
+.custom-calendar-tile.today:not(.selected):hover {
+  @apply bg-primary-100 border-primary-500;
+  transform: scale(1.05);
+}
+
+.custom-calendar-tile.today.selected {
+  @apply bg-primary-500 border-primary-600;
+  background: linear-gradient(135deg, #8B1538, #7a1231) !important;
+  color: white !important;
+}
+
+.custom-calendar-tile.today.selected abbr {
+  color: white !important;
+}
+
+/* Vista de año y década */
+.custom-calendar .react-calendar__year-view__months,
+.custom-calendar .react-calendar__decade-view__years,
+.custom-calendar .react-calendar__century-view__decades {
+  @apply gap-1.5;
+  padding: 0.5rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  max-height: none !important;
+  overflow: visible !important;
+  min-height: auto;
+}
+
+.custom-calendar .react-calendar__year-view__months__month,
+.custom-calendar .react-calendar__decade-view__years__year,
+.custom-calendar .react-calendar__century-view__decades__decade {
+  @apply p-2 rounded-lg transition-all duration-200;
+  border: 2px solid transparent;
+  cursor: pointer;
+  color: #374151;
+  font-size: 0.75rem;
+  min-height: 36px;
+  max-height: 40px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  text-transform: capitalize;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
+.custom-calendar .react-calendar__year-view__months__month:hover,
+.custom-calendar .react-calendar__decade-view__years__year:hover,
+.custom-calendar .react-calendar__century-view__decades__decade:hover {
+  @apply bg-primary-50 border-primary-300;
+  color: #8B1538;
+  transform: scale(1.02);
+}
+
+.custom-calendar .react-calendar__year-view__months__month--active,
+.custom-calendar .react-calendar__decade-view__years__year--active,
+.custom-calendar .react-calendar__century-view__decades__decade--active {
+  @apply bg-primary-500 text-white border-primary-600 shadow-lg;
+  font-weight: 700;
+}
+
+/* Animaciones suaves y profesionales */
+.custom-calendar .react-calendar__tile {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-calendar .react-calendar__navigation button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mejoras visuales adicionales */
+.custom-calendar .react-calendar__tile--now {
+  @apply bg-primary-50;
+}
+
+.custom-calendar .react-calendar__tile--now:enabled:hover {
+  @apply bg-primary-100;
+}
+
+/* Focus visible para accesibilidad */
+.custom-calendar .react-calendar__tile:focus-visible {
+  @apply outline-none ring-2 ring-primary-400 ring-offset-2;
+}
+
+/* Responsive - Calendario compacto para modales */
+@media (max-width: 640px) {
+  .custom-calendar {
+    min-width: 280px;
+    padding: 0.25rem;
+  }
+  
+  .custom-calendar .react-calendar__tile {
+    @apply p-2 text-xs;
+    min-height: 32px;
+    font-size: 0.75rem;
+  }
+  
+  .custom-calendar .react-calendar__navigation {
+    @apply p-2 mb-2;
+    min-height: 40px;
+  }
+  
+  .custom-calendar .react-calendar__navigation button {
+    @apply px-2 py-1 text-xs;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  
+  .custom-calendar .react-calendar__navigation__label {
+    @apply text-base;
+  }
+  
+  .custom-calendar .react-calendar__month-view__weekdays__weekday {
+    @apply text-[10px] py-1;
+    padding: 0.125rem;
+  }
+  
+  .custom-calendar .react-calendar__month-view__days {
+    padding: 0.25rem 0.5rem;
+    gap: 0.125rem;
+  }
+}
+
+.custom-calendar.compact {
+  padding-bottom: 0.125rem;
+  transform: scale(0.75);
+  transform-origin: top center;
+  margin-bottom: -30px;
+}
+
+.custom-calendar.compact .react-calendar__navigation {
+  @apply p-1 mb-0.5;
+  min-height: 28px;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.custom-calendar.compact .react-calendar__navigation button {
+  @apply text-[9px] px-1 py-0.5;
+  min-width: 20px;
+  min-height: 20px;
+  font-weight: 600;
+}
+
+.custom-calendar.compact .react-calendar__navigation__label {
+  @apply text-xs;
+  font-weight: 700;
+}
+
+.custom-calendar.compact .react-calendar__month-view__weekdays {
+  @apply py-0.5 px-0.5 mb-0.5;
+  padding-top: 0.25rem;
+}
+
+.custom-calendar.compact .react-calendar__month-view__weekdays__weekday {
+  @apply text-[8px] py-0.5;
+  font-weight: 600;
+}
+
+.custom-calendar.compact .react-calendar__month-view__days {
+  padding: 0.125rem 0.25rem;
+  gap: 0.125rem;
+}
+
+.custom-calendar.compact .react-calendar__tile {
+  @apply text-[9px];
+  min-height: 20px;
+  padding: 0.125rem;
+  font-weight: 500;
+}
