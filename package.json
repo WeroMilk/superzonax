@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "export": "next build",
-    "deploy": "npm run build && gh-pages -d out"
+    "deploy": "pnpm run build && gh-pages -d out"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
