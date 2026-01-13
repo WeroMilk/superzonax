@@ -175,19 +175,22 @@ export default function LoginPage() {
       style={{ 
         margin: 0, 
         padding: 0, 
-        width: 'calc(100vw + 50px)',
-        height: 'calc(100vh + 50px)',
-        minWidth: 'calc(100vw + 50px)',
-        minHeight: 'calc(100vh + 50px)',
+        width: '100vw',
+        height: '100vh',
+        minWidth: '100vw',
+        minHeight: '100vh',
+        maxWidth: '100vw',
+        maxHeight: '100vh',
         position: 'fixed',
-        top: '-25px',
-        left: '-25px',
-        right: '-25px',
-        bottom: '-25px',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         background: 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        backgroundColor: '#8B1538',
         zIndex: 0,
       }}
       >
@@ -198,16 +201,17 @@ export default function LoginPage() {
           height: '100vh', 
           zIndex: 1, 
           position: 'absolute', 
-          top: '25px',
-          left: '25px',
-          right: '25px',
-          bottom: '25px',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           margin: 0,
           padding: 'clamp(0.5rem, 2vw, 1rem)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
           paddingTop: 'clamp(10vh, 18vh, 22vh)',
+          backgroundColor: 'transparent',
         }}
       >
         <motion.div
@@ -276,9 +280,18 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const lowercasedValue = value.length > 0 
+                      ? value.charAt(0).toLowerCase() + value.slice(1)
+                      : value
+                    setUsername(lowercasedValue)
+                  }}
                   className="input-field pl-10 bg-gray-50"
                   placeholder="Ingresa tu usuario"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  autoComplete="username"
                   required
                 />
               </div>

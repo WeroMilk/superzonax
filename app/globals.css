@@ -36,6 +36,11 @@
     -webkit-overflow-scrolling: touch;
   }
   
+  body:has(.login-page-container) {
+    background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+    background-color: #8B1538 !important;
+  }
+  
   #__next {
     margin: 0 !important;
     padding: 0 !important;
@@ -48,13 +53,13 @@
     position: relative;
   }
 
-  /* Estilos específicos para la página de login - eliminar márgenes y fondo blanco */
+  /* Estilos específicos para la página de login - fondo guinda completo */
   body:has(.login-page-container) {
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
-    background: transparent !important;
-    background-color: transparent !important;
+    background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+    background-color: #8B1538 !important;
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -73,8 +78,8 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
-    background: transparent !important;
-    background-color: transparent !important;
+    background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+    background-color: #8B1538 !important;
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -93,8 +98,8 @@
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
-    background: transparent !important;
-    background-color: transparent !important;
+    background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+    background-color: #8B1538 !important;
     width: 100vw !important;
     height: 100vh !important;
     min-width: 100vw !important;
@@ -112,42 +117,50 @@
   /* Estilos específicos para móviles - cubrir safe area de iOS */
   @media (max-width: 768px) {
     .login-page-container {
-      width: calc(100vw + 100px) !important;
-      height: calc(100vh + 100px) !important;
-      min-width: calc(100vw + 100px) !important;
-      min-height: calc(100vh + 100px) !important;
-      top: -50px !important;
-      left: -50px !important;
-      right: -50px !important;
-      bottom: -50px !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      min-width: 100vw !important;
+      min-height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+      background-color: #8B1538 !important;
     }
     
     .login-page-container > div {
-      top: 50px !important;
-      left: 50px !important;
-      right: 50px !important;
-      bottom: 50px !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
     }
   }
 
   /* Estilos específicos para tablets */
   @media (min-width: 769px) and (max-width: 1024px) {
     .login-page-container {
-      width: calc(100vw + 60px) !important;
-      height: calc(100vh + 60px) !important;
-      min-width: calc(100vw + 60px) !important;
-      min-height: calc(100vh + 60px) !important;
-      top: -30px !important;
-      left: -30px !important;
-      right: -30px !important;
-      bottom: -30px !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      min-width: 100vw !important;
+      min-height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%) !important;
+      background-color: #8B1538 !important;
     }
     
     .login-page-container > div {
-      top: 30px !important;
-      left: 30px !important;
-      right: 30px !important;
-      bottom: 30px !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
     }
   }
 
