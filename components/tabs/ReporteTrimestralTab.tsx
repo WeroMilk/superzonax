@@ -304,18 +304,22 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
         >
           <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Historial</h3>
           <div className="space-y-1 overflow-y-auto flex-1">
-            {records.map((record) => (
-              <div key={record.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">
-                    Trimestre {record.quarter} - {record.year}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {record.school_id === 'sec6' ? 'Secundaria 6' : record.school_id === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'}
-                  </p>
+            {records.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No hay documentos aún.</p>
+            ) : (
+              records.map((record) => (
+                <div key={record.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">
+                      Trimestre {record.quarter} - {record.year}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {record.school_id === 'sec6' ? 'Secundaria 6' : record.school_id === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
 

@@ -51,29 +51,25 @@ export default function LoginPage() {
     
     html.style.margin = '0'
       html.style.padding = '0'
-      html.style.overflow = 'hidden'
+      html.style.overflowY = 'auto'
+      html.style.overflowX = 'hidden'
       html.style.background = 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)'
       html.style.backgroundColor = '#8B1538'
       html.style.width = '100vw'
-      html.style.height = '100vh'
-      html.style.minWidth = '100vw'
       html.style.minHeight = '100vh'
-      html.style.maxWidth = '100vw'
-      html.style.maxHeight = '100vh'
       html.style.boxSizing = 'border-box'
+      html.style.WebkitOverflowScrolling = 'touch'
       
       body.style.margin = '0'
       body.style.padding = '0'
-      body.style.overflow = 'hidden'
+      body.style.overflowY = 'auto'
+      body.style.overflowX = 'hidden'
       body.style.background = 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)'
       body.style.backgroundColor = '#8B1538'
       body.style.width = '100vw'
-      body.style.height = '100vh'
-      body.style.minWidth = '100vw'
       body.style.minHeight = '100vh'
-      body.style.maxWidth = '100vw'
-      body.style.maxHeight = '100vh'
       body.style.boxSizing = 'border-box'
+      body.style.WebkitOverflowScrolling = 'touch'
       
       if (nextRoot) {
         nextRoot.style.margin = '0'
@@ -171,16 +167,12 @@ export default function LoginPage() {
 
   return (
     <div 
-      className="login-page-container relative overflow-hidden" 
+      className="login-page-container relative overflow-y-auto" 
       style={{ 
         margin: 0, 
         padding: 0, 
         width: '100vw',
-        height: '100vh',
-        minWidth: '100vw',
         minHeight: '100vh',
-        maxWidth: '100vw',
-        maxHeight: '100vh',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -190,28 +182,28 @@ export default function LoginPage() {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
         backgroundColor: '#8B1538',
         zIndex: 0,
+        WebkitOverflowScrolling: 'touch',
       }}
       >
       <div
-        className="relative flex items-center justify-center w-full h-full p-4" 
+        className="relative flex items-center justify-center w-full min-h-full p-4" 
         style={{ 
-          width: '100vw', 
-          height: '100vh', 
+          width: '100%', 
+          minHeight: '100vh', 
           zIndex: 1, 
-          position: 'absolute', 
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          position: 'relative', 
           margin: 0,
           padding: 'clamp(0.5rem, 2vw, 1rem)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
           paddingTop: 'clamp(10vh, 18vh, 22vh)',
+          paddingBottom: 'clamp(2rem, 5vh, 4rem)',
           backgroundColor: 'transparent',
+          background: 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)',
         }}
       >
         <motion.div
