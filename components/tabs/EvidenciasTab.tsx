@@ -17,7 +17,9 @@ import {
   Building2,
   FileImage,
   ZoomIn,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { formatDateTime, formatDateTimeCompact } from '@/lib/utils'
@@ -80,15 +82,31 @@ export default function EvidenciasTab({ user }: { user: User }) {
 
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
-      setFiles(acceptedFiles)
-      // Crear previews de las imágenes
-      const previews: string[] = []
-      acceptedFiles.forEach((file) => {
+      const currentCount = files.length
+      const remainingSlots = 10 - currentCount
+      
+      if (remainingSlots <= 0) {
+        setMessage({ type: 'error', text: 'Has alcanzado el límite de 10 fotos por evidencia' })
+        return
+      }
+      
+      const filesToAdd = acceptedFiles.slice(0, remainingSlots)
+      const newFiles = [...files, ...filesToAdd]
+      
+      if (acceptedFiles.length > remainingSlots) {
+        setMessage({ type: 'error', text: `Solo se pueden agregar ${remainingSlots} foto(s) más. Límite de 10 fotos por evidencia.` })
+      }
+      
+      setFiles(newFiles)
+      
+      // Crear previews de las nuevas imágenes
+      const newPreviews: string[] = []
+      filesToAdd.forEach((file) => {
         const reader = new FileReader()
         reader.onloadend = () => {
-          previews.push(reader.result as string)
-          if (previews.length === acceptedFiles.length) {
-            setPreviewImages(previews)
+          newPreviews.push(reader.result as string)
+          if (newPreviews.length === filesToAdd.length) {
+            setPreviewImages([...previewImages, ...newPreviews])
           }
         }
         reader.readAsDataURL(file)
@@ -102,12 +120,19 @@ export default function EvidenciasTab({ user }: { user: User }) {
       'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
     },
     multiple: true,
+    maxFiles: 10,
+    disabled: previewImages.length >= 10,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!files || files.length === 0 || !title) {
       setMessage({ type: 'error', text: 'Por favor completa todos los campos y selecciona al menos una imagen' })
+      return
+    }
+    
+    if (files.length > 10) {
+      setMessage({ type: 'error', text: 'El límite es de 10 fotos por evidencia' })
       return
     }
 
@@ -477,7 +502,11 @@ export default function EvidenciasTab({ user }: { user: User }) {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Imágenes *
+                      Imágenes * {previewImages.length > 0 && (
+                        <span className="text-xs font-normal text-gray-500">
+                          ({previewImages.length}/10)
+                        </span>
+                      )}
                     </label>
                     {previewImages.length > 0 ? (
                       <div className="space-y-3">
@@ -496,19 +525,44 @@ export default function EvidenciasTab({ user }: { user: User }) {
                                   const newPreviews = previewImages.filter((_, i) => i !== index)
                                   setFiles(newFiles)
                                   setPreviewImages(newPreviews)
+                                  setMessage(null)
                                 }}
                                 className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Eliminar esta foto"
                               >
                                 <X className="w-3 h-3" />
                               </button>
                             </div>
                           ))}
+                          {/* Botón para agregar más si hay menos de 10 fotos */}
+                          {previewImages.length < 10 && (
+                            <div
+                              {...dropzone.getRootProps()}
+                              className={`border-2 border-dashed rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                                dropzone.isDragActive
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : 'border-gray-300 hover:border-primary-400 bg-gray-50'
+                              }`}
+                            >
+                              <input {...dropzone.getInputProps()} />
+                              <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                              <p className="text-xs text-gray-600 text-center px-2">
+                                Agregar más
+                              </p>
+                            </div>
+                          )}
                         </div>
+                        {previewImages.length >= 10 && (
+                          <p className="text-xs text-gray-500 text-center">
+                            Has alcanzado el límite de 10 fotos por evidencia
+                          </p>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
                             setFiles([])
                             setPreviewImages([])
+                            setMessage(null)
                           }}
                           className="text-sm text-red-600 hover:text-red-700 font-medium"
                         >
@@ -530,7 +584,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
                           Arrastra las imágenes aquí o haz clic para seleccionar
                         </p>
                         <p className="text-xs text-gray-500">
-                          Puedes seleccionar múltiples imágenes (JPG, PNG, GIF, WEBP)
+                          Puedes seleccionar múltiples imágenes (JPG, PNG, GIF, WEBP). Máximo 10 fotos por evidencia.
                         </p>
                       </div>
                     )}
@@ -631,8 +685,9 @@ export default function EvidenciasTab({ user }: { user: User }) {
                                 })
                               }}
                               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full transition-colors"
+                              aria-label="Imagen anterior"
                             >
-                              <X className="w-5 h-5 rotate-90" />
+                              <ChevronLeft className="w-5 h-5 text-gray-800" />
                             </button>
                             <button
                               onClick={(e) => {
@@ -645,8 +700,9 @@ export default function EvidenciasTab({ user }: { user: User }) {
                                 })
                               }}
                               className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full transition-colors"
+                              aria-label="Imagen siguiente"
                             >
-                              <X className="w-5 h-5 -rotate-90" />
+                              <ChevronRight className="w-5 h-5 text-gray-800" />
                             </button>
                             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 px-4 py-2 rounded-full text-sm font-medium">
                               {selectedImage.index + 1} / {filePaths.length}

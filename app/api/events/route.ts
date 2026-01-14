@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('events')
+import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,11 +40,27 @@ export async function POST(request: NextRequest) {
 
     let imagePath = null
     if (imageFile) {
-      await mkdir(UPLOAD_DIR, { recursive: true })
+      // Validar límites
+      if (imageFile.size > LIMITS.events.maxFileSize) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `La imagen excede el tamaño máximo de ${LIMITS.events.maxFileSize / 1024 / 1024}MB` 
+        }, { status: 400 })
+      }
+
+      // Contar total de eventos con imágenes existentes
+      const existingEvents = db.getAllEvents()
+      const eventsWithImages = existingEvents.filter(e => e.image_path).length
+      if (eventsWithImages >= LIMITS.events.maxFiles) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Has alcanzado el límite de ${LIMITS.events.maxFiles} imágenes de eventos` 
+        }, { status: 400 })
+      }
+
       const fileName = `event_${Date.now()}_${imageFile.name}`
-      const filePath = join(UPLOAD_DIR, fileName)
-      await writeFile(filePath, Buffer.from(await imageFile.arrayBuffer()))
-      imagePath = fileName
+      const { url } = await uploadToBlob(imageFile, fileName, 'events')
+      imagePath = url
     }
 
     db.createEvent({

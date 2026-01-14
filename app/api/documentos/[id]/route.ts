@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('documentos')
+import { deleteFromBlob } from '@/lib/blob-storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,10 +30,9 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Documento no encontrado' }, { status: 404 })
     }
 
-    try {
-      await unlink(join(UPLOAD_DIR, documento.file_path))
-    } catch {
-      // Ignorar error si el archivo no existe
+    // Eliminar archivo de Blob Storage si es una URL
+    if (documento.file_path && documento.file_path.startsWith('http')) {
+      await deleteFromBlob(documento.file_path)
     }
 
     const deleted = db.deleteDocumento(id)

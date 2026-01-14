@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
 import db from '@/lib/db-json'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('trimestral')
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,10 +22,18 @@ export async function POST(request: NextRequest) {
 
     for (const record of records) {
       const schoolName = record.school_id === 'sec6' ? 'Secundaria 6' : record.school_id === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'
-      files.push({
-        path: join(UPLOAD_DIR, record.file),
-        name: `${schoolName}_Trimestre_${quarter}`,
-      })
+      
+      if (record.file) {
+        // Usar la URL directamente si es una URL de Blob, o construir la ruta si es un nombre de archivo antiguo
+        const filePath = record.file.startsWith('http') 
+          ? record.file 
+          : `/api/files/${encodeURIComponent(record.file)}`
+        
+        files.push({
+          path: filePath,
+          name: `${schoolName}_Trimestre_${quarter}`,
+        })
+      }
     }
 
     const result = await sendEmail({

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('attendance')
+import { deleteFromBlob } from '@/lib/blob-storage'
 
 export async function DELETE(
   request: NextRequest,
@@ -28,20 +24,12 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    if (record.students_file) {
-      try {
-        await unlink(join(UPLOAD_DIR, record.students_file))
-      } catch {
-        // Ignorar error si el archivo no existe
-      }
+    // Eliminar archivos de Blob Storage si son URLs
+    if (record.students_file && record.students_file.startsWith('http')) {
+      await deleteFromBlob(record.students_file)
     }
-
-    if (record.staff_file) {
-      try {
-        await unlink(join(UPLOAD_DIR, record.staff_file))
-      } catch {
-        // Ignorar error si el archivo no existe
-      }
+    if (record.staff_file && record.staff_file.startsWith('http')) {
+      await deleteFromBlob(record.staff_file)
     }
 
     const deleted = db.deleteAttendance(parseInt(params.id))

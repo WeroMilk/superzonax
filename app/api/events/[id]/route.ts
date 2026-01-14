@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { writeFile, mkdir, unlink } from 'fs/promises'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('events')
+import { uploadToBlob, deleteFromBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function PUT(
   request: NextRequest,
@@ -34,18 +30,22 @@ export async function PUT(
     let imagePath = existingEvent.image_path || null
     
     if (imageFile) {
-      await mkdir(UPLOAD_DIR, { recursive: true })
-      if (existingEvent.image_path) {
-        try {
-          await unlink(join(UPLOAD_DIR, existingEvent.image_path))
-        } catch {
-          // Ignorar error si el archivo no existe
-        }
+      // Validar límites
+      if (imageFile.size > LIMITS.events.maxFileSize) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `La imagen excede el tamaño máximo de ${LIMITS.events.maxFileSize / 1024 / 1024}MB` 
+        }, { status: 400 })
       }
+
+      // Eliminar imagen anterior de Blob Storage si existe
+      if (existingEvent.image_path && existingEvent.image_path.startsWith('http')) {
+        await deleteFromBlob(existingEvent.image_path)
+      }
+
       const fileName = `event_${Date.now()}_${imageFile.name}`
-      const filePath = join(UPLOAD_DIR, fileName)
-      await writeFile(filePath, Buffer.from(await imageFile.arrayBuffer()))
-      imagePath = fileName
+      const { url } = await uploadToBlob(imageFile, fileName, 'events')
+      imagePath = url
     }
 
     const updated = db.updateEvent(parseInt(params.id), {
@@ -85,12 +85,9 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }
 
-    if (event.image_path) {
-      try {
-        await unlink(join(UPLOAD_DIR, event.image_path))
-      } catch {
-        // Ignorar error si el archivo no existe
-      }
+    // Eliminar imagen de Blob Storage si es una URL
+    if (event.image_path && event.image_path.startsWith('http')) {
+      await deleteFromBlob(event.image_path)
     }
 
     const deleted = db.deleteEvent(parseInt(params.id))

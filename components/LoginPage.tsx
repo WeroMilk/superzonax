@@ -170,9 +170,11 @@ export default function LoginPage() {
       className="login-page-container relative overflow-y-auto" 
       style={{ 
         margin: 0, 
-        padding: 0, 
+        padding: 0,
+        paddingBottom: 'env(safe-area-inset-bottom)',
         width: '100vw',
         minHeight: '100vh',
+        height: 'auto',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -193,15 +195,16 @@ export default function LoginPage() {
         style={{ 
           width: '100%', 
           minHeight: '100vh', 
+          height: 'auto',
           zIndex: 1, 
           position: 'relative', 
           margin: 0,
           padding: 'clamp(0.5rem, 2vw, 1rem)',
+          paddingBottom: 'max(clamp(2rem, 5vh, 4rem), env(safe-area-inset-bottom, 0px))',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
           paddingTop: 'clamp(10vh, 18vh, 22vh)',
-          paddingBottom: 'clamp(2rem, 5vh, 4rem)',
           backgroundColor: 'transparent',
           background: 'linear-gradient(135deg, #6f112c 0%, #8B1538 50%, #530d20 100%)',
         }}
@@ -214,15 +217,20 @@ export default function LoginPage() {
           style={{
             marginTop: 'clamp(-40px, -5vh, -20px)',
             marginBottom: 'auto',
-            maxWidth: '24rem',
+            maxWidth: 'clamp(18rem, 90vw, 24rem)',
             width: '100%',
+            paddingLeft: 'clamp(0.5rem, 2vw, 1rem)',
+            paddingRight: 'clamp(0.5rem, 2vw, 1rem)',
           }}
         >
           <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="bg-white rounded-2xl shadow-2xl p-8 space-y-6"
+            className="bg-white rounded-2xl shadow-2xl space-y-6"
+            style={{
+              padding: 'clamp(1rem, 4vw, 2rem)',
+            }}
           >
           <div className="text-center space-y-4">
             <motion.div
@@ -244,7 +252,8 @@ export default function LoginPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-xl sm:text-2xl font-bold text-gray-800 whitespace-nowrap"
+              className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800"
+              style={{ wordBreak: 'break-word', hyphens: 'auto' }}
             >
               Supervisión de Zona X
             </motion.h1>

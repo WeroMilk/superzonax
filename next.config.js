@@ -19,6 +19,9 @@ const nextConfig = {
         crypto: false,
       }
     }
+    // Asegurar que no interferimos con el procesamiento de CSS
+    config.module = config.module || {}
+    config.module.rules = config.module.rules || []
     return config
   },
   async headers() {

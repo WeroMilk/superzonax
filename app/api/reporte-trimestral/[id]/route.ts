@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('trimestral')
+import { deleteFromBlob } from '@/lib/blob-storage'
 
 export async function DELETE(
   request: NextRequest,
@@ -28,12 +24,9 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    if (record.file) {
-      try {
-        await unlink(join(UPLOAD_DIR, record.file))
-      } catch {
-        // Ignorar error si el archivo no existe
-      }
+    // Eliminar archivo de Blob Storage si es una URL
+    if (record.file && record.file.startsWith('http')) {
+      await deleteFromBlob(record.file)
     }
 
     const deleted = db.deleteReporteTrimestral(parseInt(params.id))

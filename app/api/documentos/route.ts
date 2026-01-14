@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('documentos')
+import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,19 +36,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Faltan datos requeridos' }, { status: 400 })
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true })
+    // Validar límites
+    if (file.size > LIMITS.documentos.maxFileSize) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `El archivo excede el tamaño máximo de ${LIMITS.documentos.maxFileSize / 1024 / 1024}MB` 
+      }, { status: 400 })
+    }
+
+    // Contar total de documentos existentes
+    const existingDocs = db.getAllDocumentos()
+    if (existingDocs.length >= LIMITS.documentos.maxFiles) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Has alcanzado el límite de ${LIMITS.documentos.maxFiles} documentos` 
+      }, { status: 400 })
+    }
 
     const fileName = `doc_${Date.now()}_${file.name}`
-    const filePath = join(UPLOAD_DIR, fileName)
-
-    await writeFile(filePath, Buffer.from(await file.arrayBuffer()))
+    const { url } = await uploadToBlob(file, fileName, 'documentos')
 
     const allowedSchoolsArray = allowedSchools ? allowedSchools.split(',').map(s => s.trim()).filter(Boolean) : []
 
     db.createDocumento({
       title,
       description: description || null,
-      file_path: fileName,
+      file_path: url,
       file_type: file.type,
       uploaded_by: user.username,
       allowed_schools: allowedSchoolsArray,

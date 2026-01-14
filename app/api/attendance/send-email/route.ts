@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
 import db from '@/lib/db-json'
-import { join } from 'path'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('attendance')
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,8 +24,13 @@ export async function POST(request: NextRequest) {
       const schoolName = record.school_id === 'sec6' ? 'Secundaria 6' : record.school_id === 'sec60' ? 'Secundaria 60' : 'Secundaria 72'
       
       if (record.students_file) {
+        // Usar la URL directamente si es una URL de Blob, o construir la ruta si es un nombre de archivo antiguo
+        const filePath = record.students_file.startsWith('http') 
+          ? record.students_file 
+          : `/api/files/${encodeURIComponent(record.students_file)}`
+        
         files.push({
-          path: join(UPLOAD_DIR, record.students_file),
+          path: filePath,
           name: `${schoolName}_Asistencia`,
           schoolId: record.school_id,
         })

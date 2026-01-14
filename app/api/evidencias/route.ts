@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('evidencias')
+import { uploadMultipleToBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,26 +45,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Faltan datos requeridos' }, { status: 400 })
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true })
-
-    const fileNames: string[] = []
-    const fileTypes: string[] = []
-    const timestamp = Date.now()
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const fileName = `${user.role}_${timestamp}_${i}_${file.name}`
-      const filePath = join(UPLOAD_DIR, fileName)
-      await writeFile(filePath, Buffer.from(await file.arrayBuffer()))
-      fileNames.push(fileName)
-      fileTypes.push(file.type)
+    // Validar límites
+    if (files.length > LIMITS.evidencias.maxPhotosPerUpload) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `No se pueden subir más de ${LIMITS.evidencias.maxPhotosPerUpload} fotos por evidencia` 
+      }, { status: 400 })
     }
+
+    // Verificar tamaño de cada archivo
+    for (const file of files) {
+      if (file.size > LIMITS.evidencias.maxPhotoSize) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `La foto "${file.name}" excede el tamaño máximo de ${LIMITS.evidencias.maxPhotoSize / 1024 / 1024}MB` 
+        }, { status: 400 })
+      }
+    }
+
+    // Contar total de fotos existentes para este usuario
+    const existingEvidencias = db.getAllEvidencias(user.role)
+    const totalPhotos = existingEvidencias.reduce((total, ev) => {
+      return total + (ev.file_paths?.length || (ev.file_path ? 1 : 0))
+    }, 0)
+
+    if (totalPhotos + files.length > LIMITS.evidencias.maxPhotos) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Has alcanzado el límite de ${LIMITS.evidencias.maxPhotos} fotos. Actualmente tienes ${totalPhotos} fotos.` 
+      }, { status: 400 })
+    }
+
+    const timestamp = Date.now()
+    const uploads = await uploadMultipleToBlob(
+      files,
+      'evidencias',
+      (file, index) => `${user.role}_${timestamp}_${index}_${file.name}`
+    )
+
+    const fileUrls = uploads.map(u => u.url)
+    const fileTypes = files.map(f => f.type)
 
     db.createEvidencia({
       school_id: user.role,
       title,
       description: description || null,
-      file_paths: fileNames,
+      file_paths: fileUrls,
       file_types: fileTypes,
     })
 

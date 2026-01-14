@@ -44,13 +44,34 @@ const tabs = [
 ]
 
 export default function Dashboard({ user }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState('asistencia')
+  // Inicializar activeTab desde localStorage o usar 'asistencia' por defecto
+  const [activeTab, setActiveTabState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('dashboard_active_tab')
+      if (savedTab && tabs.some(tab => tab.id === savedTab)) {
+        return savedTab
+      }
+    }
+    return 'asistencia'
+  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
+
+  // Función para cambiar el tab y guardarlo en localStorage
+  const setActiveTab = (tab: string) => {
+    setActiveTabState(tab)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dashboard_active_tab', tab)
+    }
+  }
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/')
+  }
+
+  const handleRefresh = () => {
+    window.location.reload()
   }
 
   const isAdmin = user.role === 'admin'
@@ -70,7 +91,12 @@ export default function Dashboard({ user }: DashboardProps) {
               >
                 {sidebarOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <button
+                onClick={handleRefresh}
+                className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+                aria-label="Actualizar página"
+                type="button"
+              >
                 <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                   <img
                     src="/assets/estlogo.png"
@@ -81,7 +107,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 <h1 className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">
                   <span className="text-primary-600">Supervisión</span> de Zona X
                 </h1>
-              </div>
+              </button>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="hidden sm:block text-right">

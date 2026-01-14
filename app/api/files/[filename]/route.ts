@@ -13,11 +13,18 @@ export async function GET(
 ) {
   try {
     const resolvedParams = 'then' in params ? await params : params
-    const filename = resolvedParams.filename
+    const filename = decodeURIComponent(resolvedParams.filename)
     
     if (!filename || filename.trim() === '') {
       return NextResponse.json({ error: 'Nombre de archivo no válido' }, { status: 400 })
     }
+
+    // Si el filename es una URL completa de Blob, redirigir directamente
+    if (filename.startsWith('http')) {
+      return NextResponse.redirect(filename)
+    }
+
+    // Si no es una URL, buscar en el sistema de archivos (para compatibilidad con archivos antiguos)
     const dataDir = getDataDir()
     const filePath = join(dataDir, 'uploads', filename)
 

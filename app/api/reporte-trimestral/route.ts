@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('trimestral')
+import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,14 +56,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Faltan datos requeridos' }, { status: 400 })
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true })
+    // Validar límites
+    if (file.size > LIMITS.trimestral.maxFileSize) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `El archivo excede el tamaño máximo de ${LIMITS.trimestral.maxFileSize / 1024 / 1024}MB` 
+      }, { status: 400 })
+    }
+
+    // Contar total de archivos existentes
+    const existingRecords = db.getAllReporteTrimestral()
+    if (existingRecords.length >= LIMITS.trimestral.maxFiles) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Has alcanzado el límite de ${LIMITS.trimestral.maxFiles} archivos de reporte trimestral` 
+      }, { status: 400 })
+    }
 
     const fileName = `${user.role}_${year}_Q${quarter}_${Date.now()}.${file.name.split('.').pop()}`
-    const filePath = join(UPLOAD_DIR, fileName)
+    const { url } = await uploadToBlob(file, fileName, 'trimestral')
 
-    await writeFile(filePath, Buffer.from(await file.arrayBuffer()))
-
-    db.createOrUpdateReporteTrimestral(user.role, quarter, year, fileName)
+    db.createOrUpdateReporteTrimestral(user.role, quarter, year, url)
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

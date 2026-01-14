@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('attendance')
+import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,18 +47,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Faltan datos requeridos' }, { status: 400 })
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true })
+    // Validar límites
+    if (attendanceFile.size > LIMITS.attendance.maxFileSize) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `El archivo excede el tamaño máximo de ${LIMITS.attendance.maxFileSize / 1024 / 1024}MB` 
+      }, { status: 400 })
+    }
+
+    // Contar total de archivos de asistencia existentes
+    const existingRecords = db.getAllAttendance()
+    if (existingRecords.length >= LIMITS.attendance.maxFiles) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Has alcanzado el límite de ${LIMITS.attendance.maxFiles} archivos de asistencia` 
+      }, { status: 400 })
+    }
 
     const fileExtension = attendanceFile.name.split('.').pop() || 'xlsx'
     const fileName = `${user.role}_${date}_attendance_${Date.now()}.${fileExtension}`
-    const filePath = join(UPLOAD_DIR, fileName)
+    const { url } = await uploadToBlob(attendanceFile, fileName, 'attendance')
 
-    const arrayBuffer = await attendanceFile.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    await writeFile(filePath, buffer)
-
-    db.createOrUpdateAttendance(user.role, date, fileName, null)
+    db.createOrUpdateAttendance(user.role, date, url, null)
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

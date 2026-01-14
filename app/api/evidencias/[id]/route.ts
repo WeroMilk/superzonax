@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unlink } from 'fs/promises'
-import { join } from 'path'
 import { getUserFromRequest } from '@/lib/auth'
 import db from '@/lib/db-json'
-import { getUploadDir } from '@/lib/vercel-utils'
-
-const UPLOAD_DIR = getUploadDir('evidencias')
+import { deleteFromBlob } from '@/lib/blob-storage'
 
 export async function DELETE(
   request: NextRequest,
@@ -28,11 +24,12 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    for (const filePath of evidencia.file_paths) {
-      try {
-        await unlink(join(UPLOAD_DIR, filePath))
-      } catch {
-        // Ignorar error si el archivo no existe
+    // Eliminar archivos de Blob Storage
+    const filePaths = evidencia.file_paths || (evidencia.file_path ? [evidencia.file_path] : [])
+    for (const fileUrl of filePaths) {
+      // Si es una URL de Blob, eliminarla
+      if (fileUrl.startsWith('http')) {
+        await deleteFromBlob(fileUrl)
       }
     }
 

@@ -363,11 +363,22 @@ export default function AsistenciaTab({ user }: { user: User }) {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-3 overflow-hidden" style={{ maxHeight: '100vh' }}>
+    <div 
+      className="h-full flex flex-col space-y-3" 
+      style={{ 
+        height: '100%',
+        maxHeight: '100vh',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        minHeight: 0,
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="card flex-shrink-0 p-3 sm:p-4"
+        style={{ minHeight: 'fit-content' }}
       >
         <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 flex items-center space-x-2">
           <Upload className="w-5 h-5 text-primary-500" />
