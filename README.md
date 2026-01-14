@@ -202,5 +202,5 @@ El proyecto está configurado para desplegarse fácilmente en Vercel:
 
 ---
 
-Desarrollado con ❤️ para la Supervisión de Zona No. 10 de Secundarias Técnicas
+Desarrollado para la Supervisión de Zona No. 10 de Secundarias Técnicas
 
