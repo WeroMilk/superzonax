@@ -22,7 +22,7 @@ import {
   Grid3x3,
   List
 } from 'lucide-react'
-import { formatDate, getTodayDate } from '@/lib/utils'
+import { formatDate, getTodayDate, getFileUrl } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import { useDropzone } from 'react-dropzone'
 
@@ -359,7 +359,7 @@ export default function EventosTab({ user }: { user: User }) {
                       {event.image_path ? (
                         <div className="aspect-square bg-gray-100 relative overflow-hidden">
                           <img
-                            src={`/api/files/${event.image_path}`}
+                            src={getImageUrl(event.image_path)}
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
@@ -464,7 +464,7 @@ export default function EventosTab({ user }: { user: User }) {
                         {event.image_path && (
                           <div className="w-full sm:w-48 h-48 sm:h-auto bg-gray-100 relative overflow-hidden flex-shrink-0">
                             <img
-                              src={`/api/files/${event.image_path}`}
+                              src={getFileUrl(event.image_path)}
                               alt={event.title}
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -600,7 +600,7 @@ export default function EventosTab({ user }: { user: User }) {
                       {event.image_path ? (
                         <div className="aspect-square bg-gray-100 relative overflow-hidden">
                           <img
-                            src={`/api/files/${event.image_path}`}
+                            src={getImageUrl(event.image_path)}
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {

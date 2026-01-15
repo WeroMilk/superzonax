@@ -12,7 +12,21 @@ export function capitalizeFirst(str: string): string {
 }
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
+  let d: Date
+  
+  if (typeof date === 'string') {
+    // Si es formato YYYY-MM-DD, parsearlo manualmente para evitar problemas de zona horaria
+    const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (dateMatch) {
+      const [, year, month, day] = dateMatch
+      d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    } else {
+      d = new Date(date)
+    }
+  } else {
+    d = date
+  }
+  
   const formatted = d.toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'long',
@@ -60,4 +74,17 @@ export function getCurrentMonth(): string {
 
 export function getCurrentYear(): number {
   return new Date().getFullYear()
+}
+
+/**
+ * Obtiene la URL correcta para un archivo (Blob URL o ruta local)
+ */
+export function getFileUrl(filePath: string | null | undefined): string {
+  if (!filePath) return ''
+  // Si es una URL completa de Blob, usarla directamente
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath
+  }
+  // Si no, usar la ruta de API (para archivos antiguos)
+  return `/api/files/${encodeURIComponent(filePath)}`
 }

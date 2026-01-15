@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Upload, FolderOpen, Download, Trash2, FileText } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
-import { formatDateTime } from '@/lib/utils'
+import { formatDateTime, getFileUrl } from '@/lib/utils'
 
 interface User {
   id: number
@@ -204,7 +204,7 @@ export default function RepositorioTab({ user }: { user: User }) {
                 </div>
                 <div className="flex items-center space-x-1 flex-shrink-0">
                   <a
-                    href={`/api/files/${documento.file_path}`}
+                    href={getFileUrl(documento.file_path)}
                     download
                     className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                   >

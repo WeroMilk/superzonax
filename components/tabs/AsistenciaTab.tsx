@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Upload, FileText, Mail, Calendar, Download, Trash2, Save } from 'lucide-react'
-import { formatDate, getTodayDate } from '@/lib/utils'
+import { formatDate, getTodayDate, getFileUrl } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import EmailSelector from '@/components/EmailSelector'
 import { generateAttendanceExcel, workbookToBlob, AttendanceSchoolData } from '@/lib/excel-generator'
@@ -272,8 +272,8 @@ export default function AsistenciaTab({ user }: { user: User }) {
                           ✓ Archivo subido
                         </p>
                         <a
-                          href={`/api/files/${encodeURIComponent(schoolRecords[0].students_file)}`}
-                          download={schoolRecords[0].students_file}
+                          href={getFileUrl(schoolRecords[0].students_file)}
+                          download={schoolRecords[0].students_file?.split('/').pop() || 'archivo.xlsx'}
                           className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 text-sm"
                           target="_blank"
                           rel="noopener noreferrer"
@@ -584,8 +584,8 @@ export default function AsistenciaTab({ user }: { user: User }) {
                 <div className="flex space-x-2">
                   {lastUploaded.students_file && (
                     <a
-                      href={`/api/files/${encodeURIComponent(lastUploaded.students_file)}`}
-                      download={lastUploaded.students_file}
+                      href={getFileUrl(lastUploaded.students_file)}
+                      download={lastUploaded.students_file?.split('/').pop() || 'archivo.xlsx'}
                       className="btn-primary flex items-center space-x-2 px-3 py-1.5 text-sm"
                       target="_blank"
                       rel="noopener noreferrer"

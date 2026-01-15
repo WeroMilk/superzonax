@@ -22,7 +22,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
-import { formatDateTime, formatDateTimeCompact } from '@/lib/utils'
+import { formatDateTime, formatDateTimeCompact, getFileUrl } from '@/lib/utils'
 
 interface User {
   id: number
@@ -310,7 +310,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
                     onClick={() => setSelectedImage({ evidencia, index: 0 })}
                   >
                     <img
-                      src={`/api/files/${mainImage}`}
+                      src={getFileUrl(mainImage)}
                       alt={evidencia.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
@@ -376,7 +376,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
                       onClick={() => setSelectedImage({ evidencia, index: 0 })}
                     >
                       <img
-                        src={`/api/files/${mainImage}`}
+                        src={getFileUrl(mainImage)}
                         alt={evidencia.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -668,7 +668,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
                     return (
                       <>
                         <img
-                          src={`/api/files/${currentImage}`}
+                          src={getFileUrl(currentImage)}
                           alt={selectedImage.evidencia.title}
                           className="w-full h-full object-contain"
                         />

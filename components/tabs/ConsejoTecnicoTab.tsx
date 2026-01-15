@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Upload, FileText, Mail, Calendar, Download, Trash2 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
-import { formatDate, getCurrentMonth, capitalizeFirst } from '@/lib/utils'
+import { formatDate, getCurrentMonth, capitalizeFirst, getFileUrl } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import EmailSelector from '@/components/EmailSelector'
 
@@ -247,7 +247,7 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
                       <div className="space-y-2">
                         <p className="text-sm text-gray-600">✓ Reporte subido</p>
                         <a
-                          href={`/api/files/${schoolRecords[0].file}`}
+                          href={getFileUrl(schoolRecords[0].file)}
                           download
                           className="flex items-center space-x-2 text-primary-600 hover:text-primary-700 text-sm"
                         >
@@ -440,7 +440,7 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
                 </div>
                 <div className="flex space-x-3">
                   <a
-                    href={`/api/files/${encodeURIComponent(lastUploaded.file)}`}
+                    href={getFileUrl(lastUploaded.file)}
                     download={lastUploaded.file}
                     className="btn-primary flex items-center space-x-2 px-4 py-2"
                     target="_blank"
