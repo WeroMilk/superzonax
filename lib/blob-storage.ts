@@ -1,5 +1,10 @@
 import { put, del, head } from '@vercel/blob'
 
+// Verificar que el token esté configurado
+if (!process.env.BLOB_READ_WRITE_TOKEN && process.env.NODE_ENV === 'production') {
+  console.error('⚠️  BLOB_READ_WRITE_TOKEN no está configurado. Por favor crea un Blob Store en Vercel Dashboard.')
+}
+
 // Límites de la aplicación
 export const LIMITS = {
   evidencias: {
@@ -39,6 +44,15 @@ export async function uploadToBlob(
   filename: string,
   type: BlobType
 ): Promise<{ url: string; pathname: string }> {
+  // Verificar que el token esté configurado
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      'BLOB_READ_WRITE_TOKEN no está configurado. ' +
+      'Por favor crea un Blob Store en Vercel Dashboard (Storage → Create Database → Blob) ' +
+      'y asegúrate de que la variable de entorno esté configurada.'
+    )
+  }
+
   const buffer = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file
   
   // Validar tamaño según el tipo
@@ -52,6 +66,7 @@ export async function uploadToBlob(
   const blob = await put(pathname, buffer, {
     access: 'public',
     contentType: file instanceof File ? file.type : undefined,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
   })
 
   return {
@@ -88,8 +103,13 @@ export async function uploadMultipleToBlob(
  * Elimina un archivo de Vercel Blob Storage
  */
 export async function deleteFromBlob(url: string): Promise<void> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.warn('BLOB_READ_WRITE_TOKEN no está configurado. No se puede eliminar el archivo.')
+    return
+  }
+
   try {
-    await del(url)
+    await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
   } catch (error) {
     // Si el archivo no existe, no es un error crítico
     console.warn(`Error al eliminar blob: ${url}`, error)
@@ -100,8 +120,12 @@ export async function deleteFromBlob(url: string): Promise<void> {
  * Verifica si un archivo existe en Blob Storage
  */
 export async function blobExists(url: string): Promise<boolean> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return false
+  }
+
   try {
-    await head(url)
+    await head(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
     return true
   } catch {
     return false
