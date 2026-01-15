@@ -659,7 +659,7 @@ export default function EvidenciasTab({ user }: { user: User }) {
                     <X className="w-5 h-5 text-gray-600" />
                   </button>
                 </div>
-                <div className="bg-black flex-1 overflow-hidden relative">
+                <div className="bg-black flex-1 overflow-hidden relative flex items-center justify-center" style={{ minHeight: '400px' }}>
                   {(() => {
                     const filePaths = selectedImage.evidencia.file_paths || 
                       (selectedImage.evidencia.file_path ? [selectedImage.evidencia.file_path] : [])
@@ -670,7 +670,8 @@ export default function EvidenciasTab({ user }: { user: User }) {
                         <img
                           src={getFileUrl(currentImage)}
                           alt={selectedImage.evidencia.title}
-                          className="w-full h-full object-contain"
+                          className="max-w-full max-h-full object-contain"
+                          style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: 'calc(90vh - 100px)' }}
                         />
                         {filePaths.length > 1 && (
                           <>

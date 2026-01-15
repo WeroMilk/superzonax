@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FileText, Mail, Calendar, Download, Trash2 } from 'lucide-react'
+import { Upload, FileText, Mail, Calendar, Download, Trash2, RefreshCw } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { formatDate, getCurrentYear, getFileUrl } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
@@ -91,10 +91,14 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
       const response = await fetch('/api/reporte-trimestral')
       const data = await response.json()
       if (data.success) {
-        setRecords(data.records)
+        setRecords(data.records || [])
+      } else {
+        console.error('Error al obtener registros:', data.error)
+        setMessage({ type: 'error', text: data.error || 'Error al cargar registros' })
       }
-    } catch {
-      // Error al obtener registros
+    } catch (error) {
+      console.error('Error al obtener registros:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al cargar registros' })
     }
   }
 
@@ -302,7 +306,16 @@ export default function ReporteTrimestralTab({ user }: { user: User }) {
           transition={{ delay: 0.1 }}
           className="card flex-1 overflow-hidden flex flex-col"
         >
-          <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Historial</h3>
+          <div className="flex justify-between items-center mb-2 flex-shrink-0">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800">Historial</h3>
+            <button
+              onClick={fetchRecords}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Actualizar registros"
+            >
+              <RefreshCw className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
           <div className="space-y-1 overflow-y-auto flex-1">
             {records.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No hay documentos aún.</p>

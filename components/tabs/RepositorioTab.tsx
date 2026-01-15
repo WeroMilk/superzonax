@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FolderOpen, Download, Trash2, FileText } from 'lucide-react'
+import { Upload, FolderOpen, Download, Trash2, FileText, RefreshCw } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { formatDateTime, getFileUrl } from '@/lib/utils'
 
@@ -45,12 +45,16 @@ export default function RepositorioTab({ user }: { user: User }) {
       const response = await fetch('/api/documentos')
       const data = await response.json()
       if (data.success) {
-        setDocumentos(data.documentos.sort((a: Documento, b: Documento) => 
+        setDocumentos((data.documentos || []).sort((a: Documento, b: Documento) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ))
+      } else {
+        console.error('Error al obtener documentos:', data.error)
+        setMessage({ type: 'error', text: data.error || 'Error al cargar documentos' })
       }
     } catch (error) {
       console.error('Error fetching documentos:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al cargar documentos' })
     }
   }
 
@@ -167,10 +171,19 @@ export default function RepositorioTab({ user }: { user: User }) {
         animate={{ opacity: 1, y: 0 }}
         className="card flex-1 overflow-hidden flex flex-col"
       >
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 flex items-center space-x-2 flex-shrink-0">
-          <FolderOpen className="w-5 h-5 text-primary-500" />
-          <span>Repositorio de Documentos</span>
-        </h2>
+        <div className="flex justify-between items-center mb-3 flex-shrink-0">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center space-x-2">
+            <FolderOpen className="w-5 h-5 text-primary-500" />
+            <span>Repositorio de Documentos</span>
+          </h2>
+          <button
+            onClick={fetchDocumentos}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Actualizar documentos"
+          >
+            <RefreshCw className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
 
         {documentos.length === 0 ? (
           <p className="text-gray-500 text-center py-4 text-sm">No hay documentos aún</p>

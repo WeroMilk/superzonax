@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FileText, Mail, Calendar, Download, Trash2, Save } from 'lucide-react'
+import { Upload, FileText, Mail, Calendar, Download, Trash2, Save, RefreshCw } from 'lucide-react'
 import { formatDate, getTodayDate, getFileUrl } from '@/lib/utils'
 import DatePicker from '@/components/DatePicker'
 import EmailSelector from '@/components/EmailSelector'
@@ -56,16 +56,10 @@ export default function AsistenciaTab({ user }: { user: User }) {
   }, [lastUploaded, isAdmin, user.role])
 
   const loadLastUploaded = async () => {
+    // Limpiar localStorage para resetear datos antiguos
     const storageKey = `lastUploaded_attendance_${user.role}`
-    const stored = localStorage.getItem(storageKey)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setLastUploaded(parsed)
-      } catch {
-        // Error al parsear, continuar sin datos guardados
-      }
-    }
+    localStorage.removeItem(storageKey)
+    
     await fetchLastRecord()
   }
 
@@ -74,14 +68,26 @@ export default function AsistenciaTab({ user }: { user: User }) {
       const response = await fetch(`/api/attendance?school=${schoolId}`)
       const data = await response.json()
       if (data.success && data.records.length > 0) {
-        const sortedRecords = data.records.sort((a: AttendanceRecord, b: AttendanceRecord) => {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        })
-        const latest = sortedRecords[0]
-        setLastUploaded(latest)
+        // Filtrar solo registros que tienen archivo válido
+        const recordsWithFiles = data.records.filter((r: AttendanceRecord) => 
+          r.students_file && r.students_file.trim() !== ''
+        )
+        
+        if (recordsWithFiles.length > 0) {
+          const sortedRecords = recordsWithFiles.sort((a: AttendanceRecord, b: AttendanceRecord) => {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          })
+          const latest = sortedRecords[0]
+          setLastUploaded(latest)
+        } else {
+          setLastUploaded(null)
+        }
+      } else {
+        setLastUploaded(null)
       }
     } catch {
       // Error al obtener registros
+      setLastUploaded(null)
     }
   }
 
@@ -90,10 +96,14 @@ export default function AsistenciaTab({ user }: { user: User }) {
       const response = await fetch('/api/attendance')
       const data = await response.json()
       if (data.success) {
-        setRecords(data.records)
+        setRecords(data.records || [])
+      } else {
+        console.error('Error al obtener registros:', data.error)
+        setMessage({ type: 'error', text: data.error || 'Error al cargar registros' })
       }
-    } catch {
-      // Error al obtener registros
+    } catch (error) {
+      console.error('Error al obtener registros:', error)
+      setMessage({ type: 'error', text: 'Error de conexión al cargar registros' })
     }
   }
 
@@ -307,7 +317,16 @@ export default function AsistenciaTab({ user }: { user: User }) {
           transition={{ delay: 0.1 }}
           className="card flex-1 overflow-hidden flex flex-col"
         >
-          <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-2 flex-shrink-0">Historial</h3>
+          <div className="flex justify-between items-center mb-2 flex-shrink-0">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800">Historial</h3>
+            <button
+              onClick={fetchRecords}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Actualizar registros"
+            >
+              <RefreshCw className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
           <div className="space-y-1 overflow-y-auto flex-1">
             {records.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No hay documentos aún.</p>
@@ -571,29 +590,25 @@ export default function AsistenciaTab({ user }: { user: User }) {
               minHeight: 0
             }}
           >
-            {!lastUploaded ? (
-              <p className="text-gray-500 text-center text-sm py-3">No hay archivos subidos aún</p>
+            {!lastUploaded || !lastUploaded.students_file ? (
+              <p className="text-gray-500 text-center text-sm py-3">No hay documentos aún.</p>
             ) : (
               <div className="w-full flex flex-col items-center justify-center space-y-3 p-3">
                 <div className="flex flex-col items-center space-y-1">
                   <p className="font-medium text-base">{formatDate(lastUploaded.date)}</p>
-                  <p className="text-sm text-gray-600">
-                    {lastUploaded.students_file ? 'Archivo subido' : 'Sin archivo'}
-                  </p>
+                  <p className="text-sm text-gray-600">Archivo subido</p>
                 </div>
                 <div className="flex space-x-2">
-                  {lastUploaded.students_file && (
-                    <a
-                      href={getFileUrl(lastUploaded.students_file)}
-                      download={lastUploaded.students_file?.split('/').pop() || 'archivo.xlsx'}
-                      className="btn-primary flex items-center space-x-2 px-3 py-1.5 text-sm"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Descargar</span>
-                    </a>
-                  )}
+                  <a
+                    href={getFileUrl(lastUploaded.students_file)}
+                    download={lastUploaded.students_file?.split('/').pop() || 'archivo.xlsx'}
+                    className="btn-primary flex items-center space-x-2 px-3 py-1.5 text-sm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Descargar</span>
+                  </a>
                   <button
                     onClick={() => handleDeleteRecord(lastUploaded.id)}
                     className="btn-secondary flex items-center space-x-2 px-3 py-1.5 text-sm text-red-600 border-red-500"
