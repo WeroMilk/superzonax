@@ -54,7 +54,7 @@ const transporter = nodemailer.createTransport({
 })
 
 export interface EmailConfig {
-  reportType: 'attendance' | 'consejo_tecnico' | 'reporte_trimestral'
+  reportType: 'attendance' | 'consejo_tecnico' | 'reporte_trimestral' | 'documentos'
   recipients: string[]
   files: Array<{ path: string; name: string; schoolId?: string }>
   subject: string

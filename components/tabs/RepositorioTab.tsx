@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, FolderOpen, Download, Trash2, FileText, RefreshCw } from 'lucide-react'
+import { Upload, FolderOpen, Download, Trash2, FileText, RefreshCw, Mail } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { formatDateTime, getFileUrl } from '@/lib/utils'
+import EmailSelector from '@/components/EmailSelector'
 
 interface User {
   id: number
@@ -33,6 +34,9 @@ export default function RepositorioTab({ user }: { user: User }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
+  const [selectedDocumentos, setSelectedDocumentos] = useState<Set<number>>(new Set())
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailRecipients, setEmailRecipients] = useState('')
 
   const isAdmin = user.role === 'admin'
 
@@ -136,14 +140,94 @@ export default function RepositorioTab({ user }: { user: User }) {
     return '📎'
   }
 
+  const handleToggleDocumento = (id: number) => {
+    const newSelected = new Set(selectedDocumentos)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedDocumentos(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    setSelectedDocumentos(new Set(documentos.map(d => d.id)))
+  }
+
+  const handleDeselectAll = () => {
+    setSelectedDocumentos(new Set())
+  }
+
+  const handleSendEmail = async () => {
+    if (selectedDocumentos.size === 0) {
+      setMessage({ type: 'error', text: 'Debes seleccionar al menos un documento' })
+      return
+    }
+
+    if (!emailRecipients.trim()) {
+      setMessage({ type: 'error', text: 'Debes seleccionar al menos un destinatario' })
+      return
+    }
+
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/documentos/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentoIds: Array.from(selectedDocumentos),
+          recipients: emailRecipients,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Correo enviado correctamente' })
+        setShowEmailModal(false)
+        setEmailRecipients('')
+        setSelectedDocumentos(new Set())
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al enviar correo' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error de conexión' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="h-full flex flex-col space-y-2 overflow-hidden">
       {isAdmin && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-end flex-shrink-0"
+          className="flex justify-between items-center flex-shrink-0 gap-2"
         >
+          <div className="flex gap-2">
+            {selectedDocumentos.size > 0 && (
+              <>
+                <button 
+                  onClick={() => setShowEmailModal(true)} 
+                  className="btn-primary flex items-center justify-center space-x-1.5 whitespace-nowrap text-xs py-1.5 px-3 mt-4 mb-2"
+                >
+                  <Mail className="w-3 h-3" />
+                  <span>Enviar por Correo ({selectedDocumentos.size})</span>
+                </button>
+                <button 
+                  onClick={handleDeselectAll} 
+                  className="btn-secondary flex items-center justify-center space-x-1.5 whitespace-nowrap text-xs py-1.5 px-3 mt-4 mb-2"
+                >
+                  <span>Deseleccionar</span>
+                </button>
+              </>
+            )}
+          </div>
           <button 
             onClick={() => setShowUploadModal(true)} 
             className="btn-primary flex items-center justify-center space-x-1.5 whitespace-nowrap text-xs py-1.5 px-3 mt-4 mb-2 mr-2"
@@ -188,53 +272,98 @@ export default function RepositorioTab({ user }: { user: User }) {
         {documentos.length === 0 ? (
           <p className="text-gray-500 text-center py-4 text-sm">No hay documentos aún</p>
         ) : (
-          <div className="space-y-2 overflow-y-auto flex-1">
-            {documentos.map((documento) => (
-              <motion.div
-                key={documento.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  <div className="text-xl flex-shrink-0">{getFileIcon(documento.file_type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-primary-600 text-sm truncate">{documento.title}</h3>
-                    {documento.description && (
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">{documento.description}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatDateTime(documento.created_at)}
-                    </p>
-                    {isAdmin && documento.allowed_schools && documento.allowed_schools.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Visible para: {documento.allowed_schools.map(s => 
-                          s === 'sec6' ? 'Sec. 6' : s === 'sec60' ? 'Sec. 60' : 'Sec. 72'
-                        ).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1 flex-shrink-0">
-                  <a
-                    href={getFileUrl(documento.file_path)}
-                    download
-                    className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+          <>
+            {isAdmin && documentos.length > 0 && (
+              <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200">
+                <span className="text-xs text-gray-600">
+                  {selectedDocumentos.size > 0 
+                    ? `${selectedDocumentos.size} documento(s) seleccionado(s)`
+                    : 'Selecciona documentos para enviar por correo'}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                   >
-                    <Download className="w-4 h-4" />
-                  </a>
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDelete(documento.id)}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    Seleccionar todos
+                  </button>
+                  {selectedDocumentos.size > 0 && (
+                    <>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        onClick={handleDeselectAll}
+                        className="text-xs text-gray-600 hover:text-gray-700 font-medium"
+                      >
+                        Deseleccionar
+                      </button>
+                    </>
                   )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+            )}
+            <div className="space-y-2 overflow-y-auto flex-1">
+              {documentos.map((documento) => {
+                const isSelected = selectedDocumentos.has(documento.id)
+                return (
+                  <motion.div
+                    key={documento.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex items-center justify-between p-2 rounded-lg border transition-shadow ${
+                      isSelected 
+                        ? 'bg-primary-50 border-primary-300 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      {isAdmin && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleDocumento(documento.id)}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer flex-shrink-0"
+                        />
+                      )}
+                      <div className="text-xl flex-shrink-0">{getFileIcon(documento.file_type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-primary-600 text-sm truncate">{documento.title}</h3>
+                        {documento.description && (
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-1">{documento.description}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatDateTime(documento.created_at)}
+                        </p>
+                        {isAdmin && documento.allowed_schools && documento.allowed_schools.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Visible para: {documento.allowed_schools.map(s => 
+                              s === 'sec6' ? 'Sec. 6' : s === 'sec60' ? 'Sec. 60' : 'Sec. 72'
+                            ).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 flex-shrink-0">
+                      <a
+                        href={getFileUrl(documento.file_path)}
+                        download
+                        className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(documento.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </>
         )}
       </motion.div>
 
@@ -361,6 +490,53 @@ export default function RepositorioTab({ user }: { user: User }) {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de correo */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-xl p-4 max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
+            <h3 className="text-lg font-bold mb-3">Enviar Documentos por Correo</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-700 mb-2">
+                  Se enviarán {selectedDocumentos.size} documento(s) seleccionado(s):
+                </p>
+                <div className="bg-gray-50 rounded-lg p-2 max-h-32 overflow-y-auto">
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    {documentos
+                      .filter(d => selectedDocumentos.has(d.id))
+                      .map(d => (
+                        <li key={d.id}>• {d.title}</li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+              <EmailSelector
+                value={emailRecipients}
+                onChange={setEmailRecipients}
+              />
+              <div className="flex space-x-2">
+                <button onClick={handleSendEmail} className="btn-primary flex-1 text-sm py-2" disabled={loading}>
+                  {loading ? 'Enviando...' : 'Enviar'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false)
+                    setEmailRecipients('')
+                  }}
+                  className="btn-secondary flex-1 text-sm py-2"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </motion.div>
         </div>
       )}
