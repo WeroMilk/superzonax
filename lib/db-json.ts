@@ -212,7 +212,7 @@ class DB {
 
   createOrUpdateAttendance(schoolId: string, date: string, studentsFile: string | null, staffFile: string | null) {
     const db = readDB()
-    const existing = db.attendance.findIndex(a => a.school_id === schoolId && a.date === date)
+    const existingIndex = db.attendance.findIndex(a => a.school_id === schoolId && a.date === date)
     
     const attendanceData = {
       school_id: schoolId,
@@ -222,8 +222,13 @@ class DB {
       created_at: new Date().toISOString(),
     }
 
-    if (existing >= 0) {
-      db.attendance[existing] = { ...db.attendance[existing], ...attendanceData }
+    if (existingIndex >= 0) {
+      // Mantener el ID original cuando se actualiza
+      const existingId = db.attendance[existingIndex].id
+      db.attendance[existingIndex] = { 
+        id: existingId,
+        ...attendanceData 
+      }
     } else {
       db.attendance.push({
         id: this.getNextId('attendance'),
@@ -259,7 +264,7 @@ class DB {
 
   createOrUpdateConsejoTecnico(schoolId: string, month: string, year: number, file: string) {
     const db = readDB()
-    const existing = db.consejo_tecnico.findIndex(c => c.school_id === schoolId && c.month === month && c.year === year)
+    const existingIndex = db.consejo_tecnico.findIndex(c => c.school_id === schoolId && c.month === month && c.year === year)
     
     const consejoData = {
       school_id: schoolId,
@@ -269,8 +274,13 @@ class DB {
       created_at: new Date().toISOString(),
     }
 
-    if (existing >= 0) {
-      db.consejo_tecnico[existing] = { ...db.consejo_tecnico[existing], ...consejoData }
+    if (existingIndex >= 0) {
+      // Mantener el ID original cuando se actualiza
+      const existingId = db.consejo_tecnico[existingIndex].id
+      db.consejo_tecnico[existingIndex] = { 
+        id: existingId,
+        ...consejoData 
+      }
     } else {
       db.consejo_tecnico.push({
         id: this.getNextId('consejo_tecnico'),
@@ -306,7 +316,7 @@ class DB {
 
   createOrUpdateReporteTrimestral(schoolId: string, quarter: number, year: number, file: string) {
     const db = readDB()
-    const existing = db.reporte_trimestral.findIndex(r => r.school_id === schoolId && r.quarter === quarter && r.year === year)
+    const existingIndex = db.reporte_trimestral.findIndex(r => r.school_id === schoolId && r.quarter === quarter && r.year === year)
     
     const reporteData = {
       school_id: schoolId,
@@ -316,8 +326,13 @@ class DB {
       created_at: new Date().toISOString(),
     }
 
-    if (existing >= 0) {
-      db.reporte_trimestral[existing] = { ...db.reporte_trimestral[existing], ...reporteData }
+    if (existingIndex >= 0) {
+      // Mantener el ID original cuando se actualiza
+      const existingId = db.reporte_trimestral[existingIndex].id
+      db.reporte_trimestral[existingIndex] = { 
+        id: existingId,
+        ...reporteData 
+      }
     } else {
       db.reporte_trimestral.push({
         id: this.getNextId('reporte_trimestral'),

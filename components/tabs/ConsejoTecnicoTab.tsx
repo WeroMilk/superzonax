@@ -54,16 +54,10 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
   }, [lastUploaded, isAdmin, user.role])
 
   const loadLastUploaded = async () => {
+    // Limpiar localStorage para resetear datos antiguos
     const storageKey = `lastUploaded_consejo_${user.role}`
-    const stored = localStorage.getItem(storageKey)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setLastUploaded(parsed)
-      } catch {
-        // Error al parsear, continuar sin datos guardados
-      }
-    }
+    localStorage.removeItem(storageKey)
+    
     await fetchLastRecord()
   }
 
@@ -72,14 +66,26 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
       const response = await fetch(`/api/consejo-tecnico?school=${schoolId}`)
       const data = await response.json()
       if (data.success && data.records.length > 0) {
-        const sortedRecords = data.records.sort((a: ConsejoRecord, b: ConsejoRecord) => {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        })
-        const latest = sortedRecords[0]
-        setLastUploaded(latest)
+        // Filtrar solo registros que tienen archivo válido
+        const recordsWithFiles = data.records.filter((r: ConsejoRecord) => 
+          r.file && r.file.trim() !== ''
+        )
+        
+        if (recordsWithFiles.length > 0) {
+          const sortedRecords = recordsWithFiles.sort((a: ConsejoRecord, b: ConsejoRecord) => {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          })
+          const latest = sortedRecords[0]
+          setLastUploaded(latest)
+        } else {
+          setLastUploaded(null)
+        }
+      } else {
+        setLastUploaded(null)
       }
     } catch {
       // Error al obtener registros
+      setLastUploaded(null)
     }
   }
 
@@ -117,12 +123,17 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
         const storageKey = `lastUploaded_consejo_${user.role}`
         localStorage.removeItem(storageKey)
         setLastUploaded(null)
+        // Recargar el último registro después de eliminar
         await fetchLastRecord()
       } else {
         setMessage({ type: 'error', text: data.error || 'Error al eliminar registro' })
+        // Si hay error, también recargar para sincronizar
+        await fetchLastRecord()
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error de conexión' })
+      // Recargar en caso de error también
+      await fetchLastRecord()
     }
   }
 
@@ -439,8 +450,8 @@ export default function ConsejoTecnicoTab({ user }: { user: User }) {
               minHeight: 0
             }}
           >
-            {!lastUploaded ? (
-              <p className="text-gray-500 text-center py-4">No hay archivos subidos aún</p>
+            {!lastUploaded || !lastUploaded.file ? (
+              <p className="text-gray-500 text-center py-4 text-sm">No hay documentos aún.</p>
             ) : (
               <div className="w-full flex flex-col items-center justify-center space-y-4 p-4">
                 <div className="flex flex-col items-center space-y-2">
