@@ -44,12 +44,26 @@ export async function uploadToBlob(
   filename: string,
   type: BlobType
 ): Promise<{ url: string; pathname: string }> {
-  // Verificar que el token esté configurado
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Obtener el token - puede estar en diferentes variables de entorno
+  const token = process.env.BLOB_READ_WRITE_TOKEN || 
+                process.env.VERCEL_BLOB_TOKEN ||
+                process.env.BLOB_TOKEN
+
+  if (!token) {
+    const envVars = Object.keys(process.env).filter(key => 
+      key.includes('BLOB') || key.includes('VERCEL')
+    ).join(', ')
+    
     throw new Error(
-      'BLOB_READ_WRITE_TOKEN no está configurado. ' +
-      'Por favor crea un Blob Store en Vercel Dashboard (Storage → Create Database → Blob) ' +
-      'y asegúrate de que la variable de entorno esté configurada.'
+      'BLOB_READ_WRITE_TOKEN no está configurado.\n\n' +
+      'Pasos para solucionarlo:\n' +
+      '1. Ve a Vercel Dashboard → Tu Proyecto → Storage → Tu Blob Store → Settings\n' +
+      '2. Copia el "Read and Write Token"\n' +
+      '3. Ve a Settings → Environment Variables\n' +
+      '4. Agrega: BLOB_READ_WRITE_TOKEN = [pega el token]\n' +
+      '5. Asegúrate de seleccionar: Production, Preview, Development\n' +
+      '6. Haz un redeploy\n\n' +
+      `Variables de entorno encontradas: ${envVars || 'ninguna'}`
     )
   }
 
@@ -66,7 +80,7 @@ export async function uploadToBlob(
   const blob = await put(pathname, buffer, {
     access: 'public',
     contentType: file instanceof File ? file.type : undefined,
-    token: process.env.BLOB_READ_WRITE_TOKEN,
+    token: token,
   })
 
   return {
@@ -103,13 +117,17 @@ export async function uploadMultipleToBlob(
  * Elimina un archivo de Vercel Blob Storage
  */
 export async function deleteFromBlob(url: string): Promise<void> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN || 
+                process.env.VERCEL_BLOB_TOKEN ||
+                process.env.BLOB_TOKEN
+
+  if (!token) {
     console.warn('BLOB_READ_WRITE_TOKEN no está configurado. No se puede eliminar el archivo.')
     return
   }
 
   try {
-    await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
+    await del(url, { token })
   } catch (error) {
     // Si el archivo no existe, no es un error crítico
     console.warn(`Error al eliminar blob: ${url}`, error)
@@ -120,12 +138,16 @@ export async function deleteFromBlob(url: string): Promise<void> {
  * Verifica si un archivo existe en Blob Storage
  */
 export async function blobExists(url: string): Promise<boolean> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN || 
+                process.env.VERCEL_BLOB_TOKEN ||
+                process.env.BLOB_TOKEN
+
+  if (!token) {
     return false
   }
 
   try {
-    await head(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
+    await head(url, { token })
     return true
   } catch {
     return false
