@@ -3,8 +3,13 @@ import './globals.css'
 import '../styles/calendar.css'
 
 export const metadata: Metadata = {
-  title: 'Supervisión de Zona X - Secundarias Técnicas',
+  title: 'Sup Zona X',
   description: 'Sistema de gestión para la Supervisión de Zona X de Secundarias Técnicas en Hermosillo, Sonora',
+  icons: {
+    icon: '/assets/estlogo.png',
+    shortcut: '/assets/estlogo.png',
+    apple: '/assets/estlogo.png',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,
