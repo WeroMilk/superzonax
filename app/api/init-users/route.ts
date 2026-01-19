@@ -27,57 +27,69 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Crear usuarios por defecto
+    // Crear usuarios por defecto (sin especificar ID para que Supabase lo maneje)
     const defaultUsers = [
       {
-        id: 1,
         username: 'supzonax',
         password: bcrypt.hashSync('admin', 10),
         role: 'admin' as const,
         school_name: 'Supervisión de Zona No. 10',
-        created_at: new Date().toISOString(),
       },
       {
-        id: 2,
         username: 'sec06',
         password: bcrypt.hashSync('sec06', 10),
         role: 'sec6' as const,
         school_name: 'Secundaria Técnica No. 6',
-        created_at: new Date().toISOString(),
       },
       {
-        id: 3,
         username: 'sec60',
         password: bcrypt.hashSync('sec60', 10),
         role: 'sec60' as const,
         school_name: 'Secundaria Técnica No. 60',
-        created_at: new Date().toISOString(),
       },
       {
-        id: 4,
         username: 'sec72',
         password: bcrypt.hashSync('sec72', 10),
         role: 'sec72' as const,
         school_name: 'Secundaria Técnica No. 72',
-        created_at: new Date().toISOString(),
       },
     ]
 
     // Insertar usuarios usando Supabase
     const { supabaseAdmin } = await import('@/lib/supabase')
     
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert(defaultUsers)
-      .select()
-
-    if (error) {
-      console.error('Error al crear usuarios:', error)
+    // Insertar uno por uno para manejar errores mejor
+    const insertedUsers = []
+    const errors = []
+    
+    for (const user of defaultUsers) {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .insert(user)
+        .select()
+        .single()
+      
+      if (error) {
+        // Si el error es de duplicado (usuario ya existe), continuar
+        if (error.code === '23505') {
+          console.log(`Usuario ${user.username} ya existe, omitiendo...`)
+          continue
+        }
+        console.error(`Error al crear usuario ${user.username}:`, error)
+        errors.push({ username: user.username, error: error.message })
+      }
+      
+      if (data) {
+        insertedUsers.push(data)
+      }
+    }
+    
+    if (insertedUsers.length === 0 && errors.length > 0) {
       return NextResponse.json(
         {
           success: false,
-          error: `Error al crear usuarios: ${error.message}`,
-          details: error,
+          error: 'No se pudieron crear usuarios',
+          details: errors,
         },
         { status: 500 }
       )
@@ -85,13 +97,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Usuarios creados correctamente',
-      usersCreated: data?.length || 0,
-      users: defaultUsers.map(u => ({
+      message: `Usuarios creados correctamente (${insertedUsers.length} de ${defaultUsers.length})`,
+      usersCreated: insertedUsers.length,
+      users: insertedUsers.map(u => ({
+        id: u.id,
         username: u.username,
         role: u.role,
         school_name: u.school_name,
       })),
+      errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
