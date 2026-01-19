@@ -126,12 +126,14 @@ async function initializeUsers() {
 }
 
 // Inicializar usuarios al importar (solo una vez)
+// Nota: Esta inicialización puede fallar silenciosamente en producción
+// Si los usuarios no existen, usa el endpoint POST /api/init-users para crearlos
 let initialized = false
-if (!initialized) {
+if (!initialized && process.env.NODE_ENV !== 'production') {
   initialized = true
   initializeUsers().catch((error) => {
     console.error('❌ Error al inicializar usuarios:', error)
-    console.error('💡 Ejecuta el script crear-usuarios.sql en Supabase SQL Editor')
+    console.error('💡 Ejecuta POST /api/init-users o el script crear-usuarios.sql')
   })
 }
 
