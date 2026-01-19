@@ -56,6 +56,15 @@ export async function login(username: string, password: string): Promise<{ succe
     return { success: true, token, user: userData }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error al procesar el login'
+    
+    // Mensaje más específico si es un error de configuración
+    if (errorMessage.includes('Variables de entorno') || errorMessage.includes('autenticación')) {
+      return { 
+        success: false, 
+        error: 'Error de configuración: ' + errorMessage + '. Verifica las variables de entorno en Vercel.' 
+      }
+    }
+    
     return { success: false, error: errorMessage }
   }
 }

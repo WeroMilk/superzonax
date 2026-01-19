@@ -151,6 +151,19 @@ class SupabaseDB {
 
   async findUser(username: string): Promise<User | undefined> {
     try {
+      // Verificar que las variables de entorno estén configuradas
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      
+      if (!supabaseUrl || !serviceRoleKey || 
+          supabaseUrl.includes('placeholder') || 
+          serviceRoleKey.includes('placeholder')) {
+        console.error('❌ ERROR: Variables de entorno de Supabase no configuradas')
+        console.error('   NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl || 'NO CONFIGURADA')
+        console.error('   SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'CONFIGURADA' : 'NO CONFIGURADA')
+        throw new Error('Variables de entorno de Supabase no configuradas. Verifica las variables en Vercel.')
+      }
+      
       const { data, error } = await supabaseAdmin
         .from('users')
         .select('*')
@@ -161,6 +174,10 @@ class SupabaseDB {
         // PGRST116 significa "no rows found", lo cual es normal
         if (error.code !== 'PGRST116') {
           console.error('Error al buscar usuario:', error)
+          // Si es un error de autenticación, puede ser que las claves sean incorrectas
+          if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+            throw new Error('Error de autenticación con Supabase. Verifica que las claves API sean correctas.')
+          }
         }
         return undefined
       }
@@ -169,6 +186,10 @@ class SupabaseDB {
       return data as User
     } catch (error) {
       console.error('Excepción al buscar usuario:', error)
+      // Re-lanzar el error si es sobre configuración
+      if (error instanceof Error && error.message.includes('Variables de entorno')) {
+        throw error
+      }
       return undefined
     }
   }

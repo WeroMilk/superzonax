@@ -18,11 +18,53 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
+  // Verificar configuración de Supabase
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const hasAnonKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  const isConfigured = 
+    supabaseUrl && 
+    hasAnonKey && 
+    hasServiceKey &&
+    !supabaseUrl?.includes('placeholder') &&
+    !process.env.SUPABASE_SERVICE_ROLE_KEY?.includes('placeholder')
+  
+  // Probar conexión si está configurado
+  let connectionTest = null
+  if (isConfigured) {
+    try {
+      const { supabaseAdmin } = await import('@/lib/supabase')
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('id, username, role')
+        .limit(1)
+      
+      connectionTest = {
+        status: error ? 'error' : 'success',
+        message: error ? `Error: ${error.message}` : '✅ Conectado correctamente',
+        usersFound: data?.length || 0
+      }
+    } catch (err: any) {
+      connectionTest = {
+        status: 'exception',
+        message: `Excepción: ${err.message}`
+      }
+    }
+  }
+  
   return NextResponse.json({
     success: true,
     message: 'Login API está funcionando',
     methods: ['POST', 'OPTIONS', 'GET'],
     timestamp: new Date().toISOString(),
+    supabaseConfig: {
+      configured: isConfigured,
+      url: supabaseUrl || 'NO CONFIGURADA',
+      hasAnonKey,
+      hasServiceKey,
+      connectionTest
+    }
   })
 }
 
