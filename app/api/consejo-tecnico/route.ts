@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,19 +15,19 @@ export async function GET(request: NextRequest) {
 
     let records
     if (user.role === 'admin') {
-      records = db.getAllConsejoTecnico().sort((a, b) => {
+      records = (await db.getAllConsejoTecnico()).sort((a, b) => {
         const yearCompare = b.year - a.year
         if (yearCompare !== 0) return yearCompare
         const monthCompare = parseInt(b.month) - parseInt(a.month)
         return monthCompare !== 0 ? monthCompare : a.school_id.localeCompare(b.school_id)
       })
     } else if (school) {
-      records = db.getAllConsejoTecnico(school).sort((a, b) => {
+      records = (await db.getAllConsejoTecnico(school)).sort((a, b) => {
         const yearCompare = b.year - a.year
         return yearCompare !== 0 ? yearCompare : parseInt(b.month) - parseInt(a.month)
       })
     } else {
-      records = db.getAllConsejoTecnico(user.role).sort((a, b) => {
+      records = (await db.getAllConsejoTecnico(user.role)).sort((a, b) => {
         const yearCompare = b.year - a.year
         return yearCompare !== 0 ? yearCompare : parseInt(b.month) - parseInt(a.month)
       })
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contar total de archivos existentes
-    const existingRecords = db.getAllConsejoTecnico()
+    const existingRecords = await db.getAllConsejoTecnico()
     if (existingRecords.length >= LIMITS.consejo.maxFiles) {
       return NextResponse.json({ 
         success: false, 
@@ -74,9 +74,9 @@ export async function POST(request: NextRequest) {
     }
 
     const fileName = `${user.role}_${year}_${month}_${Date.now()}.${file.name.split('.').pop()}`
-    const { url } = await uploadToBlob(file, fileName, 'consejo')
+    const { url } = await uploadToSupabase(file, fileName, 'consejo')
 
-    db.createOrUpdateConsejoTecnico(user.role, month, year, url)
+    await db.createOrUpdateConsejoTecnico(user.role, month, year, url)
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

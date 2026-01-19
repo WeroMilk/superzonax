@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { deleteFromBlob } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { deleteFromSupabase } from '@/lib/supabase-storage'
 
 export async function DELETE(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 })
     }
 
-    const allRecords = db.getAllReporteTrimestral()
+    const allRecords = await db.getAllReporteTrimestral()
     const record = allRecords.find(r => r.id === parseInt(params.id))
     
     if (!record) {
@@ -24,12 +24,12 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    // Eliminar archivo de Blob Storage si es una URL
+    // Eliminar archivo de Supabase Storage si es una URL
     if (record.file && record.file.startsWith('http')) {
-      await deleteFromBlob(record.file)
+      await deleteFromSupabase(record.file)
     }
 
-    const deleted = db.deleteReporteTrimestral(parseInt(params.id))
+    const deleted = await db.deleteReporteTrimestral(parseInt(params.id))
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Registro no encontrado' }, { status: 404 })
     }

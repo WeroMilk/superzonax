@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import db from './db-json'
+import db from './supabase-db'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supzonax-secret-key-change-in-production'
 
@@ -35,7 +35,7 @@ export function verifyToken(token: string): User | null {
 
 export async function login(username: string, password: string): Promise<{ success: boolean; token?: string; user?: User; error?: string }> {
   try {
-    const user = db.findUser(username)
+    const user = await db.findUser(username)
     
     if (!user) {
       return { success: false, error: 'Usuario no encontrado' }

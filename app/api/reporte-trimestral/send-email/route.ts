@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
-import db from '@/lib/db-json'
+import db from '@/lib/supabase-db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
 
     const { quarter, year, recipients } = await request.json()
 
-    const records = db.getAllReporteTrimestral().filter(r => r.quarter === quarter && r.year === year)
+    const allRecords = await db.getAllReporteTrimestral()
+    const records = allRecords.filter(r => r.quarter === quarter && r.year === year)
 
     if (records.length === 0) {
       return NextResponse.json({ success: false, error: 'No hay archivos para este trimestre' }, { status: 400 })

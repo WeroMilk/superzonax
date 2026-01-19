@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
+import db from '@/lib/supabase-db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const userData = db.getUserById(user.id)
+    const userData = await db.getUserById(user.id)
     
     return NextResponse.json({ success: true, user: userData })
   } catch (error: unknown) {

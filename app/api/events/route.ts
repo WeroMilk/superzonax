@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 })
     }
 
-    const events = db.getAllEvents().sort((a, b) => a.start_date.localeCompare(b.start_date))
+    const events = (await db.getAllEvents()).sort((a, b) => a.start_date.localeCompare(b.start_date))
     return NextResponse.json({ success: true, events })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Contar total de eventos con imágenes existentes
-      const existingEvents = db.getAllEvents()
+      const existingEvents = await db.getAllEvents()
       const eventsWithImages = existingEvents.filter(e => e.image_path).length
       if (eventsWithImages >= LIMITS.events.maxFiles) {
         return NextResponse.json({ 
@@ -59,11 +59,11 @@ export async function POST(request: NextRequest) {
       }
 
       const fileName = `event_${Date.now()}_${imageFile.name}`
-      const { url } = await uploadToBlob(imageFile, fileName, 'events')
+      const { url } = await uploadToSupabase(imageFile, fileName, 'events')
       imagePath = url
     }
 
-    db.createEvent({
+    await db.createEvent({
       title,
       description: description || null,
       event_type,

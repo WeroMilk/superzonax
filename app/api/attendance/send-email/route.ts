@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
-import db from '@/lib/db-json'
+import db from '@/lib/supabase-db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
 
     const { date, recipients } = await request.json()
 
-    const records = db.getAllAttendance().filter(r => r.date === date)
+    const allRecords = await db.getAllAttendance()
+    const records = allRecords.filter(r => r.date === date)
 
     if (records.length === 0) {
       return NextResponse.json({ success: false, error: 'No hay archivos para esta fecha' }, { status: 400 })

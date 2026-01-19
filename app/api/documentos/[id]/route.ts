@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { deleteFromBlob } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { deleteFromSupabase } from '@/lib/supabase-storage'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,19 +23,19 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 })
     }
 
-    const documentos = db.getAllDocumentos()
+    const documentos = await db.getAllDocumentos()
     const documento = documentos.find(d => d.id === id)
     
     if (!documento) {
       return NextResponse.json({ success: false, error: 'Documento no encontrado' }, { status: 404 })
     }
 
-    // Eliminar archivo de Blob Storage si es una URL
+    // Eliminar archivo de Supabase Storage si es una URL
     if (documento.file_path && documento.file_path.startsWith('http')) {
-      await deleteFromBlob(documento.file_path)
+      await deleteFromSupabase(documento.file_path)
     }
 
-    const deleted = db.deleteDocumento(id)
+    const deleted = await db.deleteDocumento(id)
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Documento no encontrado en la base de datos' }, { status: 404 })
     }

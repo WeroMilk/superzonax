@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, deleteFromBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, deleteFromSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function PUT(
   request: NextRequest,
@@ -22,7 +22,8 @@ export async function PUT(
     const school_id = formData.get('school_id') as string | null
     const imageFile = formData.get('image') as File | null
 
-    const existingEvent = db.getAllEvents().find(e => e.id === parseInt(params.id))
+    const allEvents = await db.getAllEvents()
+    const existingEvent = allEvents.find(e => e.id === parseInt(params.id))
     if (!existingEvent) {
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }
@@ -38,17 +39,17 @@ export async function PUT(
         }, { status: 400 })
       }
 
-      // Eliminar imagen anterior de Blob Storage si existe
+      // Eliminar imagen anterior de Supabase Storage si existe
       if (existingEvent.image_path && existingEvent.image_path.startsWith('http')) {
-        await deleteFromBlob(existingEvent.image_path)
+        await deleteFromSupabase(existingEvent.image_path)
       }
 
       const fileName = `event_${Date.now()}_${imageFile.name}`
-      const { url } = await uploadToBlob(imageFile, fileName, 'events')
+      const { url } = await uploadToSupabase(imageFile, fileName, 'events')
       imagePath = url
     }
 
-    const updated = db.updateEvent(parseInt(params.id), {
+    const updated = await db.updateEvent(parseInt(params.id), {
       title,
       description: description || null,
       event_type,
@@ -78,19 +79,19 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    const events = db.getAllEvents()
+    const events = await db.getAllEvents()
     const event = events.find(e => e.id === parseInt(params.id))
     
     if (!event) {
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }
 
-    // Eliminar imagen de Blob Storage si es una URL
+    // Eliminar imagen de Supabase Storage si es una URL
     if (event.image_path && event.image_path.startsWith('http')) {
-      await deleteFromBlob(event.image_path)
+      await deleteFromSupabase(event.image_path)
     }
 
-    const deleted = db.deleteEvent(parseInt(params.id))
+    const deleted = await db.deleteEvent(parseInt(params.id))
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 })
     }

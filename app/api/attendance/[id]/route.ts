@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { deleteFromBlob } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { deleteFromSupabase } from '@/lib/supabase-storage'
 
 export async function DELETE(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 })
     }
 
-    const allRecords = db.getAllAttendance()
+    const allRecords = await db.getAllAttendance()
     const record = allRecords.find(r => r.id === parseInt(params.id))
     
     if (!record) {
@@ -24,15 +24,15 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 })
     }
 
-    // Eliminar archivos de Blob Storage si son URLs
+    // Eliminar archivos de Supabase Storage si son URLs
     if (record.students_file && record.students_file.startsWith('http')) {
-      await deleteFromBlob(record.students_file)
+      await deleteFromSupabase(record.students_file)
     }
     if (record.staff_file && record.staff_file.startsWith('http')) {
-      await deleteFromBlob(record.staff_file)
+      await deleteFromSupabase(record.staff_file)
     }
 
-    const deleted = db.deleteAttendance(parseInt(params.id))
+    const deleted = await db.deleteAttendance(parseInt(params.id))
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Registro no encontrado' }, { status: 404 })
     }

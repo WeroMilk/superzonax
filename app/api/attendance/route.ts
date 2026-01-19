@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,14 +15,14 @@ export async function GET(request: NextRequest) {
 
     let records
     if (user.role === 'admin') {
-      records = db.getAllAttendance().sort((a, b) => {
+      records = (await db.getAllAttendance()).sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date)
         return dateCompare !== 0 ? dateCompare : a.school_id.localeCompare(b.school_id)
       })
     } else if (school) {
-      records = db.getAllAttendance(school).sort((a, b) => b.date.localeCompare(a.date))
+      records = (await db.getAllAttendance(school)).sort((a, b) => b.date.localeCompare(a.date))
     } else {
-      records = db.getAllAttendance(user.role).sort((a, b) => b.date.localeCompare(a.date))
+      records = (await db.getAllAttendance(user.role)).sort((a, b) => b.date.localeCompare(a.date))
     }
 
     return NextResponse.json({ success: true, records })
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contar total de archivos de asistencia existentes
-    const existingRecords = db.getAllAttendance()
+    const existingRecords = await db.getAllAttendance()
     if (existingRecords.length >= LIMITS.attendance.maxFiles) {
       return NextResponse.json({ 
         success: false, 
@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
 
     const fileExtension = attendanceFile.name.split('.').pop() || 'xlsx'
     const fileName = `${user.role}_${date}_attendance_${Date.now()}.${fileExtension}`
-    const { url } = await uploadToBlob(attendanceFile, fileName, 'attendance')
+    const { url } = await uploadToSupabase(attendanceFile, fileName, 'attendance')
 
-    db.createOrUpdateAttendance(user.role, date, url, null)
+    await db.createOrUpdateAttendance(user.role, date, url, null)
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

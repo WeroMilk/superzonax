@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,19 +15,19 @@ export async function GET(request: NextRequest) {
 
     let records
     if (user.role === 'admin') {
-      records = db.getAllReporteTrimestral().sort((a, b) => {
+      records = (await db.getAllReporteTrimestral()).sort((a, b) => {
         const yearCompare = b.year - a.year
         if (yearCompare !== 0) return yearCompare
         const quarterCompare = b.quarter - a.quarter
         return quarterCompare !== 0 ? quarterCompare : a.school_id.localeCompare(b.school_id)
       })
     } else if (school) {
-      records = db.getAllReporteTrimestral(school).sort((a, b) => {
+      records = (await db.getAllReporteTrimestral(school)).sort((a, b) => {
         const yearCompare = b.year - a.year
         return yearCompare !== 0 ? yearCompare : b.quarter - a.quarter
       })
     } else {
-      records = db.getAllReporteTrimestral(user.role).sort((a, b) => {
+      records = (await db.getAllReporteTrimestral(user.role)).sort((a, b) => {
         const yearCompare = b.year - a.year
         return yearCompare !== 0 ? yearCompare : b.quarter - a.quarter
       })
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contar total de archivos existentes
-    const existingRecords = db.getAllReporteTrimestral()
+    const existingRecords = await db.getAllReporteTrimestral()
     if (existingRecords.length >= LIMITS.trimestral.maxFiles) {
       return NextResponse.json({ 
         success: false, 
@@ -74,9 +74,9 @@ export async function POST(request: NextRequest) {
     }
 
     const fileName = `${user.role}_${year}_Q${quarter}_${Date.now()}.${file.name.split('.').pop()}`
-    const { url } = await uploadToBlob(file, fileName, 'trimestral')
+    const { url } = await uploadToSupabase(file, fileName, 'trimestral')
 
-    db.createOrUpdateReporteTrimestral(user.role, quarter, year, url)
+    await db.createOrUpdateReporteTrimestral(user.role, quarter, year, url)
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {

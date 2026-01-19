@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     const schoolId = user.role === 'admin' ? undefined : user.role
-    const documentos = db.getAllDocumentos(schoolId).sort((a, b) => b.created_at.localeCompare(a.created_at))
+    const documentos = (await db.getAllDocumentos(schoolId)).sort((a, b) => b.created_at.localeCompare(a.created_at))
     return NextResponse.json({ success: true, documentos })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contar total de documentos existentes
-    const existingDocs = db.getAllDocumentos()
+    const existingDocs = await db.getAllDocumentos()
     if (existingDocs.length >= LIMITS.documentos.maxFiles) {
       return NextResponse.json({ 
         success: false, 
@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
     }
 
     const fileName = `doc_${Date.now()}_${file.name}`
-    const { url } = await uploadToBlob(file, fileName, 'documentos')
+    const { url } = await uploadToSupabase(file, fileName, 'documentos')
 
     const allowedSchoolsArray = allowedSchools ? allowedSchools.split(',').map(s => s.trim()).filter(Boolean) : []
 
-    db.createDocumento({
+    await db.createDocumento({
       title,
       description: description || null,
       file_path: url,

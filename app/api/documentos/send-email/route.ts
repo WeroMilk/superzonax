@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
-import db from '@/lib/db-json'
+import db from '@/lib/supabase-db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Debes seleccionar al menos un destinatario' }, { status: 400 })
     }
 
-    const allDocumentos = db.getAllDocumentos()
+    const allDocumentos = await db.getAllDocumentos()
     const selectedDocumentos = allDocumentos.filter(doc => documentoIds.includes(doc.id))
 
     if (selectedDocumentos.length === 0) {

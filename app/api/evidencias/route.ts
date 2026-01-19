@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
-import db from '@/lib/db-json'
-import { uploadMultipleToBlob, LIMITS } from '@/lib/blob-storage'
+import db from '@/lib/supabase-db'
+import { uploadMultipleToSupabase, LIMITS } from '@/lib/supabase-storage'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
 
     let evidencias
     if (user.role === 'admin') {
-      evidencias = db.getAllEvidencias().sort((a, b) => b.created_at.localeCompare(a.created_at))
+      evidencias = (await db.getAllEvidencias()).sort((a, b) => b.created_at.localeCompare(a.created_at))
     } else if (school) {
-      evidencias = db.getAllEvidencias(school).sort((a, b) => b.created_at.localeCompare(a.created_at))
+      evidencias = (await db.getAllEvidencias(school)).sort((a, b) => b.created_at.localeCompare(a.created_at))
     } else {
-      evidencias = db.getAllEvidencias(user.role).sort((a, b) => b.created_at.localeCompare(a.created_at))
+      evidencias = (await db.getAllEvidencias(user.role)).sort((a, b) => b.created_at.localeCompare(a.created_at))
     }
 
     return NextResponse.json({ success: true, evidencias })
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contar total de fotos existentes para este usuario
-    const existingEvidencias = db.getAllEvidencias(user.role)
+    const existingEvidencias = await db.getAllEvidencias(user.role)
     const totalPhotos = existingEvidencias.reduce((total, ev) => {
       return total + (ev.file_paths?.length || (ev.file_path ? 1 : 0))
     }, 0)
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     const timestamp = Date.now()
-    const uploads = await uploadMultipleToBlob(
+    const uploads = await uploadMultipleToSupabase(
       files,
       'evidencias',
       (file, index) => `${user.role}_${timestamp}_${index}_${file.name}`
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const fileUrls = uploads.map(u => u.url)
     const fileTypes = files.map(f => f.type)
 
-    db.createEvidencia({
+    await db.createEvidencia({
       school_id: user.role,
       title,
       description: description || null,
