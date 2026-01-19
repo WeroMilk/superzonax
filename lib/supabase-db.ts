@@ -129,7 +129,10 @@ async function initializeUsers() {
 let initialized = false
 if (!initialized) {
   initialized = true
-  initializeUsers().catch(console.error)
+  initializeUsers().catch((error) => {
+    console.error('❌ Error al inicializar usuarios:', error)
+    console.error('💡 Ejecuta el script crear-usuarios.sql en Supabase SQL Editor')
+  })
 }
 
 class SupabaseDB {
@@ -145,14 +148,27 @@ class SupabaseDB {
   }
 
   async findUser(username: string): Promise<User | undefined> {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .single()
-    
-    if (error || !data) return undefined
-    return data as User
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single()
+      
+      if (error) {
+        // PGRST116 significa "no rows found", lo cual es normal
+        if (error.code !== 'PGRST116') {
+          console.error('Error al buscar usuario:', error)
+        }
+        return undefined
+      }
+      
+      if (!data) return undefined
+      return data as User
+    } catch (error) {
+      console.error('Excepción al buscar usuario:', error)
+      return undefined
+    }
   }
 
   async getUserById(id: number): Promise<User | undefined> {
