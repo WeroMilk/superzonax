@@ -152,15 +152,15 @@ class SupabaseDB {
   async findUser(username: string): Promise<User | undefined> {
     try {
       // Verificar que las variables de entorno estén configuradas
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY
       
       if (!supabaseUrl || !serviceRoleKey || 
           supabaseUrl.includes('placeholder') || 
           serviceRoleKey.includes('placeholder')) {
         console.error('❌ ERROR: Variables de entorno de Supabase no configuradas')
-        console.error('   NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl || 'NO CONFIGURADA')
-        console.error('   SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'CONFIGURADA' : 'NO CONFIGURADA')
+        console.error('   URL:', supabaseUrl ? 'CONFIGURADA' : 'NO CONFIGURADA')
+        console.error('   SERVICE_ROLE_KEY:', serviceRoleKey ? 'CONFIGURADA' : 'NO CONFIGURADA')
         throw new Error('Variables de entorno de Supabase no configuradas. Verifica las variables en Vercel.')
       }
       

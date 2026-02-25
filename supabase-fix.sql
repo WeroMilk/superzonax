@@ -136,20 +136,20 @@ ALTER TABLE email_config DISABLE ROW LEVEL SECURITY;
 -- ============================================
 -- Solo si no existen usuarios
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM users LIMIT 1) THEN
-    INSERT INTO users (id, username, password, role, school_name) VALUES
-      (1, 'supzonax', '$2a$10$rOzJqJqJqJqJqJqJqJqJqOqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', 'admin', 'Supervisión de Zona No. 10'),
-      (2, 'sec06', '$2a$10$rOzJqJqJqJqJqJqJqJqJqOqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', 'sec6', 'Secundaria Técnica No. 6'),
-      (3, 'sec60', '$2a$10$rOzJqJqJqJqJqJqJqJqJqOqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', 'sec60', 'Secundaria Técnica No. 60'),
-      (4, 'sec72', '$2a$10$rOzJqJqJqJqJqJqJqJqJqOqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', 'sec72', 'Secundaria Técnica No. 72')
-    ON CONFLICT (id) DO NOTHING;
-  END IF;
-END $$;
+-- Usuarios con contraseñas: supzonax->admin, sec06->sec06, sec60->sec60, sec72->sec72
+INSERT INTO users (id, username, password, role, school_name) VALUES
+  (1, 'supzonax', '$2a$10$kCrOvMxZg6ogp1jxEq06QuPcETIHPZGVvpEXdPTNeclQSVcZuk5S.', 'admin', 'Supervisión de Zona No. 10'),
+  (2, 'sec06', '$2a$10$2tCN3.RrhMx2X2lJHgwcv.ppdykBYM8hhg2UAR4X5Kh9TR4HDHDAa', 'sec6', 'Secundaria Técnica No. 6'),
+  (3, 'sec60', '$2a$10$l3qX2Ms3ejOfnYdVRjMMEOQLLm0IRs3FYJcmA0tOFVUjsUC8rBSkq', 'sec60', 'Secundaria Técnica No. 60'),
+  (4, 'sec72', '$2a$10$jfRD3Kl6pSiC7pHLlEw3x.vQ2DyUVfmQx/RbUOeav8V.CpF3KP3Qi', 'sec72', 'Secundaria Técnica No. 72')
+ON CONFLICT (id) DO UPDATE SET
+  username = EXCLUDED.username,
+  password = EXCLUDED.password,
+  role = EXCLUDED.role,
+  school_name = EXCLUDED.school_name;
 
--- Nota: Las contraseñas se generarán automáticamente cuando se ejecute la aplicación
--- por primera vez usando bcrypt. Los valores aquí son placeholders.
+-- Actualizar secuencia para futuros inserts
+SELECT setval(pg_get_serial_sequence('users', 'id'), 5, false);
 
 -- ============================================
 -- 6. VERIFICAR ESTRUCTURA
@@ -157,12 +157,15 @@ END $$;
 -- Ejecuta esto para verificar que todo está correcto:
 
 SELECT 
-  table_name,
+  t.table_name,
   CASE 
-    WHEN (SELECT relrowsecurity FROM pg_class WHERE relname = table_name) THEN 'RLS ENABLED'
+    WHEN COALESCE(c.relrowsecurity, false) THEN 'RLS ENABLED'
     ELSE 'RLS DISABLED'
   END as rls_status
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_type = 'BASE TABLE'
-ORDER BY table_name;
+FROM information_schema.tables t
+LEFT JOIN pg_class c ON c.relname = t.table_name
+LEFT JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = t.table_schema
+WHERE t.table_schema = 'public'
+  AND t.table_type = 'BASE TABLE'
+  AND c.relkind = 'r'
+ORDER BY t.table_name;

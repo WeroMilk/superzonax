@@ -19,18 +19,19 @@ export async function OPTIONS() {
 
 export async function GET() {
   // Verificar configuración de Supabase
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const hasAnonKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const hasAnonKey = !!(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY
+  const hasServiceKey = !!serviceKey
   
   const isConfigured = 
     supabaseUrl && 
     hasAnonKey && 
     hasServiceKey &&
     !supabaseUrl?.includes('placeholder') &&
-    !process.env.SUPABASE_SERVICE_ROLE_KEY?.includes('placeholder')
+    !serviceKey?.includes('placeholder')
   
-  // Probar conexión si está configurado
+  // Probar conexión y listar usuarios si está configurado
   let connectionTest = null
   if (isConfigured) {
     try {
@@ -38,12 +39,13 @@ export async function GET() {
       const { data, error } = await supabaseAdmin
         .from('users')
         .select('id, username, role')
-        .limit(1)
+        .order('id')
       
       connectionTest = {
         status: error ? 'error' : 'success',
         message: error ? `Error: ${error.message}` : '✅ Conectado correctamente',
-        usersFound: data?.length || 0
+        usersFound: data?.length ?? 0,
+        usernames: data?.map(u => u.username) ?? []
       }
     } catch (err: any) {
       connectionTest = {
